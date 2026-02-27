@@ -234,8 +234,8 @@ npm run test:integration
 | Name          | Student ID |
 | ------------- | ---------- |
 | K. Vanayalini | IT23193840 |
-| T. Thuvarekan | IT23281332 |
-| B. Clarin     | IT23402584 |
+| T. Thuverakan | IT23281332 |
+| B. Clerin     | IT23402584 |
 | G. Shajana    | IT23164208 |
 
 ---
