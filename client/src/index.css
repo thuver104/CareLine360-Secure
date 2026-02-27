@@ -1,72 +1,774 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Entry CSS for the app — re-export admin stylesheet so main.jsx import resolves */
+@import './indexAdmin.css';
+﻿@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap");
+@import "tailwindcss";
 
+/* Tailwind v4: use .dark class on <html> instead of @media prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ════════════════════════════════════════════════════════
+   CareLine360 – Doctor Dashboard
+   Design System: Glassmorphism + Transparent Layering
+   Google Font: Outfit
+════════════════════════════════════════════════════════ */
+
+@theme {
+  --font-sans: "Outfit", system-ui, sans-serif;
+
+  --color-cl-teal: #0d9488;
+  --color-cl-cyan: #06b6d4;
+  --color-cl-light: #5eead4;
+
+  --shadow-glass:
+    0 4px 24px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --shadow-glass-dark:
+    0 4px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-teal: 0 8px 32px rgba(13, 148, 136, 0.35);
+}
+
+/* ─────────────────────────────────────────────
+   BASE LAYER
+───────────────────────────────────────────── */
+@layer base {
+  /* CRITICAL: full-height layout foundation */
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: "Outfit", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    color: #0f172a;
+  }
+
+  html.dark body {
+    color: #f1f5f9;
+  }
+
+  button:focus-visible {
+    outline: 2px solid #0d9488;
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+
+  /* Scrollbar – main content area — hidden without clipping fixed children.
+     overflow-x must NOT be set to hidden here because that creates a new
+     stacking context which clips position:fixed modals/dropdowns.
+     We hide the scrollbar track visually instead. */
+  main::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+  }
+  main {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  main::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  main::-webkit-scrollbar-thumb {
+    background: rgba(13, 148, 136, 0.32);
+    border-radius: 10px;
+  }
+
+  main::-webkit-scrollbar-thumb:hover {
+    background: rgba(13, 148, 136, 0.55);
+  }
+
+  /* CSS variables — LIGHT MODE */
+  :root {
+    --glass-bg: #ffffff;
+    --glass-border: #e2e8f0;
+    --glass-shadow: rgba(0, 0, 0, 0.05);
+    --glass-inset: transparent;
+    --sidebar-bg: #ffffff;
+    --topbar-bg: #ffffff;
+    --page-from: #f8fafc;
+    --page-to: #f1f5f9;
+  }
+
+  /* CSS variables — DARK MODE */
+  html.dark {
+    --glass-bg: #0f172a;
+    --glass-border: #1e293b;
+    --glass-shadow: rgba(0, 0, 0, 0.3);
+    --glass-inset: transparent;
+    --sidebar-bg: #020617;
+    --topbar-bg: #020617;
+    --page-from: #020617;
+    --page-to: #0f172a;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   COMPONENT LAYER — all custom utility classes
+───────────────────────────────────────────── */
+@layer components {
+  /* ══════════════════════════════
+     PAGE SHELL
+  ══════════════════════════════ */
+  .cl-page {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    background: var(--page-from);
+  }
+
+  /* ══════════════════════════════
+     LAYOUT COLUMNS
+  ══════════════════════════════ */
+
+  /* Right column = topbar + scrollable main.
+     overflow must NOT be hidden — that creates a stacking context which clips
+     position:fixed modals. Use overflow:clip on the axis that needs clipping. */
+  .cl-right-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-x: clip; /* clip (not hidden) — no stacking context created */
+    min-width: 0; /* prevents flex overflow */
+    overflow: hidden;
+    min-width: 0;
+    /* prevents flex overflow */
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Scrollable main.
+     overflow-x must NOT be set to hidden — doing so creates a new stacking
+     context that clips position:fixed children (modals, dropdowns).
+     Horizontal overflow is naturally constrained by the flex layout. */
+  .cl-main {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: clip; /* clip (not hidden) — does NOT create a stacking context */
+  }
+
+  /* ══════════════════════════════
+     SIDEBAR
+  ══════════════════════════════ */
+  .cl-sidebar {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    z-index: 50;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--glass-border);
+    box-shadow: 2px 0 12px var(--glass-shadow);
+  }
+
+  /* ══════════════════════════════
+     TOPBAR
+  ══════════════════════════════ */
+  .cl-topbar {
+    flex-shrink: 0;
+    position: relative;
+    z-index: 40;
+
+    background: var(--topbar-bg);
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: 0 1px 8px var(--glass-shadow);
+  }
+
+  /* ══════════════════════════════
+     GLASS CARD
+  ══════════════════════════════ */
+  .glass-card {
+    position: relative;
+    z-index: 1;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 12px var(--glass-shadow);
+  }
+
+  /* ══════════════════════════════
+     TEAL ACCENT GLASS (profile card)
+  ══════════════════════════════ */
+  .glass-card-teal {
+    background: var(--sidebar-bg);
+    border: 1px solid var(--glass-border);
+  }
+
+  /* ══════════════════════════════
+     GLASS BUTTON
+  ══════════════════════════════ */
+  .glass-btn {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 1px 3px var(--glass-shadow);
+    transition:
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .glass-btn:hover {
+    box-shadow: 0 3px 16px var(--glass-shadow);
+    transform: translateY(-1px);
+  }
+
+  .glass-btn:active {
+    transform: translateY(0);
+  }
+
+  /* ══════════════════════════════
+     GLASS INPUT / SEARCH BAR
+  ══════════════════════════════ */
+  .glass-input {
+    background: rgba(255, 255, 255, 0.48);
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  html.dark .glass-input {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  /* ══════════════════════════════
+     WELCOME BANNER
+  ══════════════════════════════ */
+  .welcome-banner {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0d9488 0%, #0891b2 55%, #06b6d4 100%);
+    box-shadow:
+      0 8px 32px rgba(13, 148, 136, 0.4),
+      0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+
+  html.dark .welcome-banner {
+    box-shadow:
+      0 8px 32px rgba(13, 148, 136, 0.3),
+      0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+
+  /* ══════════════════════════════
+     RECORD CARD HOVER
+  ══════════════════════════════ */
+  .record-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .record-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(13, 148, 136, 0.06) 0%,
+      transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+
+  .record-card:hover::before {
+    opacity: 1;
+  }
+
+  /* ══════════════════════════════
+     ANIMATIONS
+  ══════════════════════════════ */
+  .animate-fade-in {
+    animation: fade-in 0.4s ease both;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .stagger > * {
+    animation: fade-in 0.4s ease both;
+  }
+
+  .stagger > *:nth-child(1) {
+    animation-delay: 0.04s;
+  }
+
+  .stagger > *:nth-child(2) {
+    animation-delay: 0.09s;
+  }
+
+  .stagger > *:nth-child(3) {
+    animation-delay: 0.14s;
+  }
+
+  .stagger > *:nth-child(4) {
+    animation-delay: 0.19s;
+  }
+
+  .stagger > *:nth-child(5) {
+    animation-delay: 0.24s;
+  }
+
+  .stagger > *:nth-child(6) {
+    animation-delay: 0.29s;
+  }
+
+  /* Patient card entrance — scale + fade + shift-up */
+  .patient-card {
+    animation: patient-card-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes patient-card-enter {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Pulse ring on hover for action buttons */
+  .group:hover .btn-ring {
+    animation: btn-ring-pulse 1.4s ease-out infinite;
+  }
+
+  @keyframes btn-ring-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.35);
+    }
+    70% {
+      box-shadow: 0 0 0 8px rgba(13, 148, 136, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(13, 148, 136, 0);
+    }
+  }
+
+  /* Shimmer sweep — apply only to stat cards and analytic cards.
+     Uses overflow:clip so fixed-positioned dropdowns are never clipped. */
+  @keyframes shimmer-sweep {
+    0% {
+      transform: translateX(-100%) skewX(-15deg);
+    }
+    100% {
+      transform: translateX(300%) skewX(-15deg);
+    }
+  }
+
+  .stat-card-shimmer {
+    overflow: clip; /* clip, not hidden — does NOT trap fixed children */
+    position: relative;
+  }
+
+  .stat-card-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 45%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+    pointer-events: none;
+    animation: shimmer-sweep 5s ease-in-out infinite;
+    z-index: 10;
+  }
+
+  html.dark .stat-card-shimmer::after {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      transparent 100%
+    );
+  }
+
+  /* Floating orb decorations inside the welcome banner */
+  @keyframes float-slow {
+    0%,
+    100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-8px) rotate(3deg);
+    }
+  }
+
+  .welcome-banner::before {
+    content: "";
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    animation: float-slow 7s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .welcome-banner::after {
+    content: "";
+    position: absolute;
+    bottom: -60px;
+    left: -30px;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    animation: float-slow 9s ease-in-out infinite reverse;
+    pointer-events: none;
+  }
+
+  /* Slide-in from right for section transitions */
+  .animate-slide-in {
+    animation: slide-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* ══════════════════════════════
+     UTILITIES
+  ══════════════════════════════ */
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #334155;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ══════════════════════════════
+     DATE INPUT — match dark/light system theme
+     Ensures the native browser calendar popup inherits the correct colour scheme.
+     We also hide the duplicate native picker icon because we render our own
+     Calendar icon via an absolutely-positioned element inside the wrapper div.
+  ══════════════════════════════ */
+  input[type="date"] {
+    color-scheme: light;
+    position: relative;
+    cursor: pointer;
+  }
+
+  html.dark input[type="date"] {
+    color-scheme: dark;
+  }
+
+  /* Date input — hide the native calendar icon but keep the full input clickable.
+     The indicator is stretched to cover the entire input area so clicking
+     anywhere on the field opens the date picker popup. */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    cursor: pointer;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* ══════════════════════════════
+     AVAILABILITY CALENDAR
+  ══════════════════════════════ */
+  .availability-calendar {
+    user-select: none;
+  }
+
+  /* Calendar day cell — used by AvailabilityCalendar.jsx */
+  .availability-calendar .cal-day {
+    aspect-ratio: 1 / 1;
+    min-width: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease,
+      box-shadow 0.15s ease;
+    cursor: pointer;
+    position: relative;
+    border: 1px solid transparent;
+    color: #374151; /* gray-700 */
+  }
+
+  html.dark .availability-calendar .cal-day {
+    color: #d1d5db; /* gray-300 */
+  }
+
+  .availability-calendar .cal-day:disabled,
+  .availability-calendar .cal-day.past {
+    cursor: not-allowed;
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  .availability-calendar .cal-day.selected {
+    background: #0d9488;
+    color: #fff !important;
+    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+    border-color: transparent;
+  }
+
+  .availability-calendar .cal-day.today:not(.selected) {
+    background: rgba(13, 148, 136, 0.12);
+    color: #0d9488;
+    border-color: rgba(13, 148, 136, 0.3);
+  }
+
+  html.dark .availability-calendar .cal-day.today:not(.selected) {
+    color: #2dd4bf;
+    border-color: rgba(45, 212, 191, 0.3);
+    background: rgba(45, 212, 191, 0.08);
+  }
+
+  .availability-calendar
+    .cal-day:not(.selected):not(.past):not(:disabled):hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  html.dark
+    .availability-calendar
+    .cal-day:not(.selected):not(.past):not(:disabled):hover {
+    background: rgba(255, 255, 255, 0.09);
+  }
+
+  /* ── Date-range selection ('.in-range', 'range-start', 'range-end') ─────── */
+  .availability-calendar .cal-day.in-range {
+    background: rgba(13, 148, 136, 0.13);
+    color: #0d9488;
+    border-radius: 0;
+    border-color: transparent;
+  }
+
+  html.dark .availability-calendar .cal-day.in-range {
+    background: rgba(45, 212, 191, 0.1);
+    color: #2dd4bf;
+    border-radius: 0;
+    border-color: transparent;
+  }
+
+  .availability-calendar .cal-day.range-start,
+  .availability-calendar .cal-day.range-end {
+    background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);
+    color: #fff !important;
+    border-color: transparent;
+    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+  }
+
+  .availability-calendar .cal-day.range-start {
+    border-radius: 0.75rem 0 0 0.75rem !important;
+  }
+  .availability-calendar .cal-day.range-end {
+    border-radius: 0 0.75rem 0.75rem 0 !important;
+  }
+  /* Single-day selection (start = end) — keep full rounding */
+  .availability-calendar .cal-day.range-start.range-end {
+    border-radius: 0.75rem !important;
+  }
+
+  /* Dot indicator — shows when a date has slots */
+  .availability-calendar .cal-dot {
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+  }
+
+  /* ══════════════════════════════
+     SMALL INPUT — used in modals
+  ══════════════════════════════ */
+  .input-sm {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: #1f2937;
+    transition:
+      box-shadow 0.15s ease,
+      border-color 0.15s ease;
+  }
+
+  .input-sm:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.35);
+    border-color: #0d9488;
+  }
+
+  html.dark .input-sm {
+    border-color: #4b5563;
+    background-color: #374151;
+    color: #f3f4f6;
+  }
+
+  html.dark .input-sm:focus {
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.35);
+  }
+
+  /* Prevent the page scrollbar from appearing behind modals */
+  body.modal-open {
+    overflow: hidden;
+  }
+}
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --primary: #0077b6;
+  --secondary: #00b4d8;
+  --accent: #90e0ef;
+  --background: #f8fafc;
+  --text: #1e293b;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --purple: #8b5cf6;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+.dark {
+  --background: #0f172a;
+  --text: #f1f5f9;
 }
-a:hover {
-  color: #535bf2;
+
+@theme {
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-purple: var(--purple);
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  @apply bg-slate-50 text-slate-900 font-sans antialiased transition-colors duration-300;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+.dark body {
+  @apply bg-slate-950 text-slate-100;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+.glass-card {
+  @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl rounded-2xl;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.dark .glass-card {
+  @apply bg-slate-900/40 border-white/5;
+}
+
+.sidebar-link {
+  @apply flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-white/10;
+}
+
+.sidebar-link.active {
+  @apply bg-white/20 font-bold shadow-lg;
+}
+
+/* Custom transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 300ms,
+    transform 300ms;
+}
+
+/* Leaflet marker fix */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
 }
