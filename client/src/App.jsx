@@ -84,7 +84,10 @@ export default function App() {
           <Route path="/patient/documents" element={<Documents />} />
           <Route path="/patient/navbar" element={<PatientNavbar />} />
           <Route path="/patient/messages" element={<AiChat />} />
-          <Route path="/patient/medical-history" element={<PatientMedicalHistory />} />
+          <Route
+            path="/patient/medical-history"
+            element={<PatientMedicalHistory />}
+          />
           <Route path="/patient/directory" element={<Directory />} />
         </Route>
 
@@ -125,17 +128,24 @@ export default function App() {
         </Route>
 
         {/* ================= EMERGENCY ROUTES ================= */}
-        <Route element={<ProtectedRoute allowedRoles={["admin", "responder"]} />}>
+        <Route
+          element={<ProtectedRoute allowedRoles={["admin", "responder"]} />}
+        >
           <Route path="/admin/dashboard/emergencies" element={<MainLayout />}>
             <Route index element={<EmergencyMonitoring />} />
           </Route>
         </Route>
 
         {/* ================= APPOINTMENT ROUTES ================= */}
-        <Route element={<ProtectedRoute allowedRoles={["patient", "doctor"]} />}>
+        <Route
+          element={<ProtectedRoute allowedRoles={["patient", "doctor"]} />}
+        >
           <Route element={<AppointmentLayout />}>
             <Route path="/appointments/book" element={<BookAppointment />} />
-            <Route path="/appointments/history" element={<AppointmentHistory />} />
+            <Route
+              path="/appointments/history"
+              element={<AppointmentHistory />}
+            />
             <Route path="/appointments/:id/payment" element={<PaymentPage />} />
             <Route path="/appointments/:id/chat" element={<ChatPage />} />
             <Route path="/appointments/:id" element={<AppointmentDetail />} />

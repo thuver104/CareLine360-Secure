@@ -1,5 +1,6 @@
 const {
-  generateAndUploadPrescriptionPdf,
+  generatePrescriptionBuffer,
+  uploadPrescriptionBuffer,
 } = require("../services/prescriptionPdfService");
 const Prescription = require("../models/Prescription");
 const Doctor = require("../models/Doctor");
@@ -40,16 +41,26 @@ const generatePrescriptionPdf = async (req, res) => {
         appointmentDate = new Date(appt.date).toLocaleDateString("en-GB");
     }
 
-    // Generate PDF and upload to Cloudinary
-    const { fileUrl, publicId, pdfBuffer } =
-      await generateAndUploadPrescriptionPdf({
-        doctor,
-        patient,
-        prescription: { medicines, notes },
-        appointmentDate,
-      });
+    // Step 1: Generate PDF buffer in memory
+    const pdfBuffer = await generatePrescriptionBuffer({
+      doctor,
+      patient,
+      prescription: { medicines, notes },
+      appointmentDate,
+    });
 
-    // Save prescription record directly to DB
+    // Step 2: Try to upload to Cloudinary (non-fatal — PDF download still works if this fails)
+    let fileUrl = "";
+    let publicId = "";
+    try {
+      const uploaded = await uploadPrescriptionBuffer(pdfBuffer);
+      fileUrl = uploaded.fileUrl;
+      publicId = uploaded.publicId;
+    } catch (uploadErr) {
+      console.warn("Cloudinary upload failed (non-fatal):", uploadErr.message);
+    }
+
+    // Step 3: Save prescription record
     const prescription = await Prescription.create({
       medicalRecordId: medicalRecordId || null,
       doctorId: doctor._id,
@@ -81,12 +92,10 @@ const generatePrescriptionPdf = async (req, res) => {
     res.status(200).end(pdfBuffer);
   } catch (err) {
     console.error("Prescription PDF error:", err);
-    res
-      .status(500)
-      .json({
-        message: "Failed to generate prescription PDF",
-        detail: err.message,
-      });
+    res.status(500).json({
+      message: "Failed to generate prescription PDF",
+      detail: err.message,
+    });
   }
 };
 

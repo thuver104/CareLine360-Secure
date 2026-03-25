@@ -17,19 +17,27 @@ function fmtDate(d) {
   if (!d) return "—";
   const dt = new Date(d);
   if (Number.isNaN(dt.getTime())) return "—";
-  return dt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+  return dt.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
 }
 function fmtTime(d) {
   if (!d) return "";
   const dt = new Date(d);
   if (Number.isNaN(dt.getTime())) return "";
-  return dt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return dt.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function badgeForVisitType(type) {
   const t = (type || "").toLowerCase();
   if (t === "emergency") return "bg-red-50 text-red-700 border-red-100";
-  if (t === "follow-up") return "bg-yellow-50 text-yellow-800 border-yellow-100";
+  if (t === "follow-up")
+    return "bg-yellow-50 text-yellow-800 border-yellow-100";
   return "bg-blue-50 text-blue-700 border-blue-100";
 }
 
@@ -73,7 +81,10 @@ export default function PatientMedicalHistory() {
       pdf.setFont("helvetica", bold ? "bold" : "normal");
       pdf.setFontSize(size);
 
-      const lines = pdf.splitTextToSize(String(text || ""), pageWidth - margin * 2);
+      const lines = pdf.splitTextToSize(
+        String(text || ""),
+        pageWidth - margin * 2,
+      );
       lines.forEach((l) => {
         if (y > 285) {
           pdf.addPage();
@@ -92,14 +103,17 @@ export default function PatientMedicalHistory() {
 
     // Visit Info
     line("Visit Details", 13, true);
-    line(`Visit Date: ${selected.visitDate ? new Date(selected.visitDate).toLocaleDateString() : "-"}`);
+    line(
+      `Visit Date: ${selected.visitDate ? new Date(selected.visitDate).toLocaleDateString() : "-"}`,
+    );
     line(`Visit Type: ${selected.visitType || "-"}`);
     line(`Chief Complaint: ${selected.chiefComplaint || "-"}`);
     line(`Diagnosis: ${selected.diagnosis || "-"}`);
 
     if (selected.icdCode) line(`ICD Code: ${selected.icdCode}`);
     if (selected.notes) line(`Notes: ${selected.notes}`);
-    if (selected.treatmentPlan) line(`Treatment Plan: ${selected.treatmentPlan}`);
+    if (selected.treatmentPlan)
+      line(`Treatment Plan: ${selected.treatmentPlan}`);
 
     if (selected.symptoms?.length) {
       line("Symptoms", 13, true);
@@ -186,7 +200,7 @@ export default function PatientMedicalHistory() {
         ]);
 
         const recList = normalizeList(recRes.data).sort(
-          (a, b) => new Date(b.visitDate) - new Date(a.visitDate)
+          (a, b) => new Date(b.visitDate) - new Date(a.visitDate),
         );
         const preList = normalizeList(preRes.data);
 
@@ -207,14 +221,19 @@ export default function PatientMedicalHistory() {
   const presByRecordId = useMemo(() => {
     const map = new Map();
     for (const p of prescriptions) {
-      const key = typeof p.medicalRecordId === "object" ? p.medicalRecordId?._id : p.medicalRecordId;
+      const key =
+        typeof p.medicalRecordId === "object"
+          ? p.medicalRecordId?._id
+          : p.medicalRecordId;
       if (key) map.set(String(key), p);
     }
     return map;
   }, [prescriptions]);
 
   const types = useMemo(() => {
-    const set = new Set(records.map((r) => (r.visitType || "consultation").toLowerCase()));
+    const set = new Set(
+      records.map((r) => (r.visitType || "consultation").toLowerCase()),
+    );
     return ["all", ...Array.from(set)];
   }, [records]);
 
@@ -264,7 +283,7 @@ export default function PatientMedicalHistory() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-6">
-        <PatientNavbar />
+      <PatientNavbar />
       <div className="max-w-7xl mx-auto mt-6">
         <AnimatePresence>
           {err && (
@@ -281,9 +300,13 @@ export default function PatientMedicalHistory() {
 
         <div className="flex items-center justify-between gap-3 mb-5">
           <div>
-            <h1 className="text-3xl md:text-4xl font-semibold text-gray-900">Medical History</h1>
+            <h1 className="text-3xl md:text-4xl font-semibold text-gray-900">
+              Medical History
+            </h1>
             <p className="text-gray-600 mt-1">
-              {me?.fullName ? `Patient: ${me.fullName}` : "Your visits, diagnosis, and prescriptions"}
+              {me?.fullName
+                ? `Patient: ${me.fullName}`
+                : "Your visits, diagnosis, and prescriptions"}
             </p>
           </div>
 
@@ -315,17 +338,14 @@ export default function PatientMedicalHistory() {
             custom={0}
           >
             <div className="flex gap-3">
-              <div className="flex-1 px-4 py-3 rounded-2xl bg-gray-50 border border-gray-100 focus-within:ring-2 focus-within:ring-blue-200">
-                <input
-                  className="w-full bg-transparent outline-none text-sm"
-                  placeholder="Search diagnosis, symptoms, notes..."
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                />
-              </div>
-
+              <input
+                className="flex-1 h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm hover:border-gray-300 transition"
+                placeholder="Search diagnosis, symptoms, notes…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
               <select
-                className="px-4 py-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm outline-none"
+                className="h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm hover:border-gray-300 transition"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
               >
@@ -363,12 +383,22 @@ export default function PatientMedicalHistory() {
                           <div className="text-sm font-semibold">
                             {r.diagnosis || r.chiefComplaint || "Visit"}
                           </div>
-                          <div className={"text-xs mt-1 " + (isActive ? "text-white/70" : "text-gray-500")}>
+                          <div
+                            className={
+                              "text-xs mt-1 " +
+                              (isActive ? "text-white/70" : "text-gray-500")
+                            }
+                          >
                             {fmtDate(r.visitDate)} {fmtTime(r.visitDate)}
                           </div>
 
                           {hasPrescription && (
-                            <div className={"text-xs mt-2 " + (isActive ? "text-white/70" : "text-gray-600")}>
+                            <div
+                              className={
+                                "text-xs mt-2 " +
+                                (isActive ? "text-white/70" : "text-gray-600")
+                              }
+                            >
                               💊 Prescription available
                             </div>
                           )}
@@ -377,7 +407,9 @@ export default function PatientMedicalHistory() {
                         <span
                           className={
                             "text-xs px-3 py-1 rounded-full border " +
-                            (isActive ? "bg-white/10 text-white border-white/20" : badgeForVisitType(r.visitType))
+                            (isActive
+                              ? "bg-white/10 text-white border-white/20"
+                              : badgeForVisitType(r.visitType))
                           }
                         >
                           {r.visitType || "consultation"}
@@ -399,143 +431,225 @@ export default function PatientMedicalHistory() {
             custom={1}
           >
             <div className="max-h-[520px] overflow-auto pr-1">
-            {!selected ? (
-              <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm text-gray-600">
-                Select a record to view details.
-              </div>
-            ) : (
-              <>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-xs text-gray-500">Visit Date</div>
-                    <div className="text-2xl font-semibold text-gray-900">
-                      {fmtDate(selected.visitDate)}{" "}
-                      <span className="text-base font-normal text-gray-500">{fmtTime(selected.visitDate)}</span>
-                    </div>
-                  </div>
-                  <span className={"text-xs px-3 py-1 rounded-full border " + badgeForVisitType(selected.visitType)}>
-                    {selected.visitType}
-                  </span>
+              {!selected ? (
+                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 text-sm text-gray-600">
+                  Select a record to view details.
                 </div>
-
-                <div className="mt-5 grid md:grid-cols-2 gap-4">
-                  <Box label="Chief Complaint" value={selected.chiefComplaint} />
-                  <div className="p-4 rounded-3xl bg-gray-50 border border-gray-100">
-                    <div className="text-xs text-gray-500">Diagnosis</div>
-                    <div className="text-sm text-gray-900 mt-1">{selected.diagnosis || "—"}</div>
-                    {selected.icdCode ? (
-                      <div className="text-xs text-gray-500 mt-2">ICD: {selected.icdCode}</div>
-                    ) : null}
-                  </div>
-
-                  <Box label="Symptoms" value={(selected.symptoms || []).length ? selected.symptoms.join(", ") : "—"} />
-                  <Box
-                    label="Secondary Diagnosis"
-                    value={(selected.secondaryDiagnosis || []).length ? selected.secondaryDiagnosis.join(", ") : "—"}
-                  />
-                </div>
-
-                <div className="mt-4 p-4 rounded-3xl border border-gray-100">
-                  <div className="text-sm font-semibold text-gray-900">Notes</div>
-                  <div className="text-sm text-gray-600 mt-2 whitespace-pre-line">{selected.notes || "—"}</div>
-
-                  <div className="mt-4 text-sm font-semibold text-gray-900">Treatment Plan</div>
-                  <div className="text-sm text-gray-600 mt-2 whitespace-pre-line">{selected.treatmentPlan || "—"}</div>
-
-                  <div className="mt-4 grid sm:grid-cols-2 gap-3">
-                    <Mini label="Follow-up Date" value={fmtDate(selected.followUpDate)} />
-                    <Mini label="Appointment" value={selected.appointmentId ? "Linked" : "—"} />
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <div className="text-sm font-semibold text-gray-900">Vitals</div>
-                  <div className="mt-2 grid sm:grid-cols-3 gap-3">
-                    <Vital label="BP" value={selected?.vitals?.bloodPressure} />
-                    <Vital label="HR" value={selected?.vitals?.heartRate} unit="bpm" />
-                    <Vital label="Temp" value={selected?.vitals?.temperature} unit="°C" />
-                    <Vital label="Weight" value={selected?.vitals?.weight} unit="kg" />
-                    <Vital label="Height" value={selected?.vitals?.height} unit="cm" />
-                    <Vital label="O₂ Sat" value={selected?.vitals?.oxygenSat} unit="%" />
-                  </div>
-                </div>
-
-                <div className="mt-5">
-                  <div className="text-sm font-semibold text-gray-900">Attachments</div>
-                  <div className="mt-2">
-                    {(selected.attachments || []).length ? (
-                      <div className="flex flex-wrap gap-2">
-                        {selected.attachments.map((url, idx) => (
-                          <a
-                            key={idx}
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sm px-3 py-2 rounded-2xl bg-gray-50 border border-gray-200 hover:bg-gray-100"
-                          >
-                            📎 Attachment {idx + 1}
-                          </a>
-                        ))}
+              ) : (
+                <>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs text-gray-500">Visit Date</div>
+                      <div className="text-2xl font-semibold text-gray-900">
+                        {fmtDate(selected.visitDate)}{" "}
+                        <span className="text-base font-normal text-gray-500">
+                          {fmtTime(selected.visitDate)}
+                        </span>
                       </div>
-                    ) : (
-                      <div className="text-sm text-gray-600">—</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Prescription (matched by medicalRecordId) */}
-                <div className="mt-6 p-4 rounded-3xl bg-gray-50 border border-gray-100">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-semibold text-gray-900">Prescription</div>
-
-                    {selectedPrescription?.fileUrl ? (
-                      <a
-                        href={selectedPrescription.fileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs px-3 py-2 rounded-full bg-black text-white hover:opacity-95"
-                      >
-                        View PDF
-                      </a>
-                    ) : null}
+                    </div>
+                    <span
+                      className={
+                        "text-xs px-3 py-1 rounded-full border " +
+                        badgeForVisitType(selected.visitType)
+                      }
+                    >
+                      {selected.visitType}
+                    </span>
                   </div>
 
-                  {!selectedPrescription ? (
-                    <div className="text-sm text-gray-600 mt-2">No prescription for this visit.</div>
-                  ) : (
-                    <>
-                      {selectedPrescription.notes ? (
-                        <div className="text-sm text-gray-700 mt-2 whitespace-pre-line">
-                          {selectedPrescription.notes}
+                  <div className="mt-5 grid md:grid-cols-2 gap-4">
+                    <Box
+                      label="Chief Complaint"
+                      value={selected.chiefComplaint}
+                    />
+                    <div className="p-4 rounded-3xl bg-gray-50 border border-gray-100">
+                      <div className="text-xs text-gray-500">Diagnosis</div>
+                      <div className="text-sm text-gray-900 mt-1">
+                        {selected.diagnosis || "—"}
+                      </div>
+                      {selected.icdCode ? (
+                        <div className="text-xs text-gray-500 mt-2">
+                          ICD: {selected.icdCode}
                         </div>
                       ) : null}
+                    </div>
 
-                      <div className="mt-3 space-y-2">
-                        {(selectedPrescription.medicines || []).length === 0 ? (
-                          <div className="text-sm text-gray-600">No medicines listed.</div>
-                        ) : (
-                          selectedPrescription.medicines.map((m, idx) => (
-                            <div key={idx} className="p-3 rounded-2xl bg-white border border-gray-100">
-                              <div className="text-sm font-semibold text-gray-900">
-                                {m.medicine || "Medicine"}
-                              </div>
-                              <div className="text-xs text-gray-600 mt-1">
-                                {m.dosage ? `Dosage: ${m.dosage}` : ""}
-                                {m.frequency ? ` • Frequency: ${m.frequency}` : ""}
-                                {m.duration ? ` • Duration: ${m.duration}` : ""}
-                              </div>
-                              {m.instructions ? (
-                                <div className="text-xs text-gray-600 mt-2">{m.instructions}</div>
-                              ) : null}
-                            </div>
-                          ))
-                        )}
+                    <Box
+                      label="Symptoms"
+                      value={
+                        (selected.symptoms || []).length
+                          ? selected.symptoms.join(", ")
+                          : "—"
+                      }
+                    />
+                    <Box
+                      label="Secondary Diagnosis"
+                      value={
+                        (selected.secondaryDiagnosis || []).length
+                          ? selected.secondaryDiagnosis.join(", ")
+                          : "—"
+                      }
+                    />
+                  </div>
+
+                  <div className="mt-4 p-4 rounded-3xl border border-gray-100">
+                    <div className="text-sm font-semibold text-gray-900">
+                      Notes
+                    </div>
+                    <div className="text-sm text-gray-600 mt-2 whitespace-pre-line">
+                      {selected.notes || "—"}
+                    </div>
+
+                    <div className="mt-4 text-sm font-semibold text-gray-900">
+                      Treatment Plan
+                    </div>
+                    <div className="text-sm text-gray-600 mt-2 whitespace-pre-line">
+                      {selected.treatmentPlan || "—"}
+                    </div>
+
+                    <div className="mt-4 grid sm:grid-cols-2 gap-3">
+                      <Mini
+                        label="Follow-up Date"
+                        value={fmtDate(selected.followUpDate)}
+                      />
+                      <Mini
+                        label="Appointment"
+                        value={selected.appointmentId ? "Linked" : "—"}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="text-sm font-semibold text-gray-900">
+                      Vitals
+                    </div>
+                    <div className="mt-2 grid sm:grid-cols-3 gap-3">
+                      <Vital
+                        label="BP"
+                        value={selected?.vitals?.bloodPressure}
+                      />
+                      <Vital
+                        label="HR"
+                        value={selected?.vitals?.heartRate}
+                        unit="bpm"
+                      />
+                      <Vital
+                        label="Temp"
+                        value={selected?.vitals?.temperature}
+                        unit="°C"
+                      />
+                      <Vital
+                        label="Weight"
+                        value={selected?.vitals?.weight}
+                        unit="kg"
+                      />
+                      <Vital
+                        label="Height"
+                        value={selected?.vitals?.height}
+                        unit="cm"
+                      />
+                      <Vital
+                        label="O₂ Sat"
+                        value={selected?.vitals?.oxygenSat}
+                        unit="%"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-5">
+                    <div className="text-sm font-semibold text-gray-900">
+                      Attachments
+                    </div>
+                    <div className="mt-2">
+                      {(selected.attachments || []).length ? (
+                        <div className="flex flex-wrap gap-2">
+                          {selected.attachments.map((url, idx) => (
+                            <a
+                              key={idx}
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sm px-3 py-2 rounded-2xl bg-gray-50 border border-gray-200 hover:bg-gray-100"
+                            >
+                              📎 Attachment {idx + 1}
+                            </a>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-600">—</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Prescription (matched by medicalRecordId) */}
+                  <div className="mt-6 p-4 rounded-3xl bg-gray-50 border border-gray-100">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-semibold text-gray-900">
+                        Prescription
                       </div>
-                    </>
-                  )}
-                </div>
-              </>
-            )}
+
+                      {selectedPrescription?.fileUrl ? (
+                        <a
+                          href={selectedPrescription.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs px-3 py-2 rounded-full bg-black text-white hover:opacity-95"
+                        >
+                          View PDF
+                        </a>
+                      ) : null}
+                    </div>
+
+                    {!selectedPrescription ? (
+                      <div className="text-sm text-gray-600 mt-2">
+                        No prescription for this visit.
+                      </div>
+                    ) : (
+                      <>
+                        {selectedPrescription.notes ? (
+                          <div className="text-sm text-gray-700 mt-2 whitespace-pre-line">
+                            {selectedPrescription.notes}
+                          </div>
+                        ) : null}
+
+                        <div className="mt-3 space-y-2">
+                          {(selectedPrescription.medicines || []).length ===
+                          0 ? (
+                            <div className="text-sm text-gray-600">
+                              No medicines listed.
+                            </div>
+                          ) : (
+                            selectedPrescription.medicines.map((m, idx) => (
+                              <div
+                                key={idx}
+                                className="p-3 rounded-2xl bg-white border border-gray-100"
+                              >
+                                <div className="text-sm font-semibold text-gray-900">
+                                  {m.medicine || "Medicine"}
+                                </div>
+                                <div className="text-xs text-gray-600 mt-1">
+                                  {m.dosage ? `Dosage: ${m.dosage}` : ""}
+                                  {m.frequency
+                                    ? ` • Frequency: ${m.frequency}`
+                                    : ""}
+                                  {m.duration
+                                    ? ` • Duration: ${m.duration}`
+                                    : ""}
+                                </div>
+                                {m.instructions ? (
+                                  <div className="text-xs text-gray-600 mt-2">
+                                    {m.instructions}
+                                  </div>
+                                ) : null}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </motion.div>
         </div>
@@ -566,7 +680,11 @@ export default function PatientMedicalHistory() {
 
             <div className="h-[75vh] bg-gray-100">
               {pdfUrl ? (
-                <iframe title="PDF Preview" src={pdfUrl} className="w-full h-full" />
+                <iframe
+                  title="PDF Preview"
+                  src={pdfUrl}
+                  className="w-full h-full"
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-600">
                   No preview available

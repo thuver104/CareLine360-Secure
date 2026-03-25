@@ -3,10 +3,10 @@ const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
 
 /**
- * Generate a prescription PDF and upload to Cloudinary.
- * Returns { fileUrl, publicId }
+ * Generate a prescription PDF buffer in memory.
+ * Returns a Buffer containing the PDF bytes.
  */
-const generateAndUploadPrescriptionPdf = ({
+const generatePrescriptionBuffer = ({
   doctor,
   patient,
   prescription,
@@ -18,31 +18,7 @@ const generateAndUploadPrescriptionPdf = ({
 
     doc.on("data", (chunk) => buffers.push(chunk));
     doc.on("error", reject);
-    doc.on("end", async () => {
-      const pdfBuffer = Buffer.concat(buffers);
-
-      // Upload to Cloudinary — resource_type "auto" lets Cloudinary detect the
-      // PDF content-type automatically, ensuring browsers receive the correct
-      // MIME type (application/pdf) and download the file with a .pdf extension.
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: "careline360/prescriptions",
-          resource_type: "auto",
-          format: "pdf",
-          public_id: `prescription_${Date.now()}`,
-        },
-        (error, result) => {
-          if (error) return reject(error);
-          resolve({
-            fileUrl: result.secure_url,
-            publicId: result.public_id,
-            pdfBuffer,
-          });
-        },
-      );
-
-      streamifier.createReadStream(pdfBuffer).pipe(uploadStream);
-    });
+    doc.on("end", () => resolve(Buffer.concat(buffers)));
 
     // ── PDF Layout ──────────────────────────────────────────────
     const teal = "#0d9488";
@@ -208,4 +184,27 @@ const generateAndUploadPrescriptionPdf = ({
   });
 };
 
-module.exports = { generateAndUploadPrescriptionPdf };
+/**
+ * Upload a PDF buffer to Cloudinary.
+ * Returns { fileUrl, publicId } or throws on failure.
+ */
+const uploadPrescriptionBuffer = (pdfBuffer) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: "careline360/prescriptions",
+        resource_type: "auto",
+        format: "pdf",
+        public_id: `prescription_${Date.now()}`,
+        timeout: 30000,
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve({ fileUrl: result.secure_url, publicId: result.public_id });
+      },
+    );
+    streamifier.createReadStream(pdfBuffer).pipe(uploadStream);
+  });
+};
+
+module.exports = { generatePrescriptionBuffer, uploadPrescriptionBuffer };

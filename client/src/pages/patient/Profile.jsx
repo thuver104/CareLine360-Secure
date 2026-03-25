@@ -38,7 +38,9 @@ export default function Profile() {
   const [errors, setErrors] = useState({});
 
   // ✅ Avatar (frontend-only)
-  const [avatar, setAvatar] = useState(() => localStorage.getItem("patientAvatar") || "");
+  const [avatar, setAvatar] = useState(
+    () => localStorage.getItem("patientAvatar") || "",
+  );
   const [avatarFile, setAvatarFile] = useState(null);
 
   // identity from login (localStorage)
@@ -65,27 +67,26 @@ export default function Profile() {
 
   // ✅ Avatar picker
   const onPickAvatar = async (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  // preview instantly
-  setAvatar(URL.createObjectURL(file));
+    // preview instantly
+    setAvatar(URL.createObjectURL(file));
 
-  try {
-    const fd = new FormData();
-    fd.append("avatar", file);
+    try {
+      const fd = new FormData();
+      fd.append("avatar", file);
 
-    const res = await api.patch("/patients/me/avatar", fd);
+      const res = await api.patch("/patients/me/avatar", fd);
 
-    setAvatar(res.data.avatarUrl); // final Cloudinary URL
-    setMsgType("success");
-    setMsg("✅ Profile photo updated");
-  } catch (err) {
-    setMsgType("error");
-    setMsg(err.response?.data?.message || "Avatar upload failed");
-  }
-};
-
+      setAvatar(res.data.avatarUrl); // final Cloudinary URL
+      setMsgType("success");
+      setMsg("✅ Profile photo updated");
+    } catch (err) {
+      setMsgType("error");
+      setMsg(err.response?.data?.message || "Avatar upload failed");
+    }
+  };
 
   const removeAvatar = async () => {
   try {
@@ -157,7 +158,11 @@ export default function Profile() {
   }, []);
 
   const profilePreview = useMemo(() => {
-    const addr = [form.address?.line1, form.address?.city, form.address?.district]
+    const addr = [
+      form.address?.line1,
+      form.address?.city,
+      form.address?.district,
+    ]
       .filter(Boolean)
       .join(", ");
 
@@ -207,11 +212,11 @@ export default function Profile() {
 
   const inputClass = (key) => {
     const base =
-      "w-full rounded-xl px-3 py-2 outline-none transition bg-white " +
-      "focus:ring-2 focus:ring-blue-200";
+      "w-full h-10 rounded-xl border bg-gray-50 px-3 text-sm text-gray-800 placeholder-gray-400 " +
+      "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm hover:border-gray-300 transition";
     return errors[key]
-      ? base + " ring-1 ring-red-300 focus:ring-red-200"
-      : base + " ring-1 ring-gray-200";
+      ? base + " border-red-300 focus:ring-red-300"
+      : base + " border-gray-200";
   };
 
   const validate = () => {
@@ -250,11 +255,13 @@ export default function Profile() {
 
     if (form.heightCm !== "") {
       const h = Number(form.heightCm);
-      if (Number.isNaN(h) || h < 30 || h > 250) e.heightCm = "Height must be 30–250 cm";
+      if (Number.isNaN(h) || h < 30 || h > 250)
+        e.heightCm = "Height must be 30–250 cm";
     }
     if (form.weightKg !== "") {
       const w = Number(form.weightKg);
-      if (Number.isNaN(w) || w < 2 || w > 300) e.weightKg = "Weight must be 2–300 kg";
+      if (Number.isNaN(w) || w < 2 || w > 300)
+        e.weightKg = "Weight must be 2–300 kg";
     }
 
     setErrors(e);
@@ -284,10 +291,16 @@ export default function Profile() {
 
         bloodGroup: form.bloodGroup || undefined,
         allergies: form.allergies
-          ? form.allergies.split(",").map((s) => s.trim()).filter(Boolean)
+          ? form.allergies
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
           : [],
         chronicConditions: form.chronicConditions
-          ? form.chronicConditions.split(",").map((s) => s.trim()).filter(Boolean)
+          ? form.chronicConditions
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
           : [],
         heightCm: form.heightCm === "" ? undefined : Number(form.heightCm),
         weightKg: form.weightKg === "" ? undefined : Number(form.weightKg),
@@ -309,8 +322,8 @@ export default function Profile() {
     msgType === "success"
       ? "bg-green-50 text-green-800 ring-1 ring-green-100"
       : msgType === "error"
-      ? "bg-red-50 text-red-800 ring-1 ring-red-100"
-      : "bg-blue-50 text-blue-800 ring-1 ring-blue-100";
+        ? "bg-red-50 text-red-800 ring-1 ring-red-100"
+        : "bg-blue-50 text-blue-800 ring-1 ring-blue-100";
 
   const ErrorText = ({ k }) =>
     errors[k] ? <p className="text-xs text-red-600 mt-1">{errors[k]}</p> : null;
@@ -318,26 +331,26 @@ export default function Profile() {
   if (loading) return <div className="p-6">Loading...</div>;
 
   const deactivateAccount = async () => {
-  const confirm = window.confirm(
-    "Are you sure you want to deactivate your account?\n\nYou will not be able to access the system until reactivated."
-  );
+    const confirm = window.confirm(
+      "Are you sure you want to deactivate your account?\n\nYou will not be able to access the system until reactivated.",
+    );
 
-  if (!confirm) return;
+    if (!confirm) return;
 
-  try {
-    await api.patch("/patients/me/deactivate");
+    try {
+      await api.patch("/patients/me/deactivate");
 
-    localStorage.clear();
-    alert("Your account has been deactivated.");
-    window.location.href = "/login";
-  } catch (err) {
-    setMsgType("error");
-    setMsg(err.response?.data?.message || "Failed to deactivate account");
-  }
-};
+      localStorage.clear();
+      alert("Your account has been deactivated.");
+      window.location.href = "/login";
+    } catch (err) {
+      setMsgType("error");
+      setMsg(err.response?.data?.message || "Failed to deactivate account");
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f6fbff] to-white bg-[url('/')] bg-cover bg-center p-6">
+    <div className="min-h-screen bg-white p-6">
       <PatientNavbar />
       <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
@@ -352,9 +365,9 @@ export default function Profile() {
           <div className="flex gap-2">
             <a
               href="/patient/dashboard"
-              className="px-4 py-2 rounded-xl bg-white ring-1 ring-gray-200 text-sm hover:bg-gray-50 transition"
+              className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition shadow-sm"
             >
-              Back
+              ← Back
             </a>
 
             {!editMode ? (
@@ -364,7 +377,7 @@ export default function Profile() {
                   setMsgType("");
                   setEditMode(true);
                 }}
-                className="px-4 py-2 rounded-xl bg-black text-white text-sm hover:opacity-95 transition"
+                className="h-10 px-5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 active:scale-[0.98] transition shadow-sm"
               >
                 Edit Profile
               </button>
@@ -376,7 +389,7 @@ export default function Profile() {
                   setErrors({});
                   setEditMode(false);
                 }}
-                className="px-4 py-2 rounded-xl bg-gray-900 text-white text-sm hover:opacity-95 transition"
+                className="h-10 px-5 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 text-sm font-medium hover:bg-gray-100 hover:border-gray-300 active:scale-[0.98] transition shadow-sm"
               >
                 Cancel
               </button>
@@ -384,14 +397,20 @@ export default function Profile() {
           </div>
         </div>
 
-        {msg && <div className={`mb-4 p-3 rounded-xl text-sm ${msgClass}`}>{msg}</div>}
+        {msg && (
+          <div className={`mb-4 p-3 rounded-xl text-sm ${msgClass}`}>{msg}</div>
+        )}
 
         {/* ✅ Avatar card */}
         <div className="bg-white rounded-2xl p-6 ring-1 ring-gray-100 shadow-sm mb-5">
           <div className="flex items-center gap-5">
             <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gray-100 ring-1 ring-gray-200 flex items-center justify-center">
               {avatar ? (
-                <img src={avatar || form.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                <img
+                  src={avatar || form.avatarUrl}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <span className="text-3xl">👤</span>
               )}
@@ -426,7 +445,9 @@ export default function Profile() {
                     </button>
                   )}
 
-                  <div className="text-xs text-gray-500">JPG/PNG/WebP • Max 2MB</div>
+                  <div className="text-xs text-gray-500">
+                    JPG/PNG/WebP • Max 2MB
+                  </div>
                 </div>
               )}
             </div>
@@ -436,68 +457,51 @@ export default function Profile() {
         {/* VIEW MODE */}
         {!editMode && (
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="bg-white rounded-2xl p-5 ring-1 ring-gray-100 shadow-sm">
-              <div className="text-xs text-gray-500">Full Name</div>
-              <div className="mt-1 text-base font-semibold text-gray-900">{profilePreview.name}</div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 ring-1 ring-gray-100 shadow-sm">
-              <div className="text-xs text-gray-500">Email</div>
-              <div className="mt-1 text-base font-semibold text-gray-900">{profilePreview.email}</div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 ring-1 ring-gray-100 shadow-sm">
-              <div className="text-xs text-gray-500">DOB / Gender</div>
-              <div className="mt-1 text-base font-semibold text-gray-900">
-                {profilePreview.dob} • {profilePreview.gender}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 ring-1 ring-gray-100 shadow-sm">
-              <div className="text-xs text-gray-500">NIC</div>
-              <div className="mt-1 text-base font-semibold text-gray-900">{profilePreview.nic}</div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 ring-1 ring-gray-100 shadow-sm md:col-span-2">
-              <div className="text-xs text-gray-500">Address</div>
-              <div className="mt-1 text-base font-semibold text-gray-900">{profilePreview.address}</div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 ring-1 ring-gray-100 shadow-sm md:col-span-2">
-              <div className="text-xs text-gray-500">Emergency Contact</div>
-              <div className="mt-1 text-base font-semibold text-gray-900">{profilePreview.emergency}</div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 ring-1 ring-gray-100 shadow-sm">
-              <div className="text-xs text-gray-500">Blood Group</div>
-              <div className="mt-1 text-base font-semibold text-gray-900">{profilePreview.bloodGroup}</div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 ring-1 ring-gray-100 shadow-sm">
-              <div className="text-xs text-gray-500">Height / Weight</div>
-              <div className="mt-1 text-base font-semibold text-gray-900">
-                {profilePreview.height} • {profilePreview.weight}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 ring-1 ring-gray-100 shadow-sm md:col-span-2">
-              <div className="text-xs text-gray-500">Allergies</div>
-              <div className="mt-1 text-base font-semibold text-gray-900">{profilePreview.allergies}</div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 ring-1 ring-gray-100 shadow-sm md:col-span-2">
-              <div className="text-xs text-gray-500">Chronic Conditions</div>
-              <div className="mt-1 text-base font-semibold text-gray-900">{profilePreview.conditions}</div>
-            </div>
+            <ProfileCard label="Full Name" value={profilePreview.name} />
+            <ProfileCard label="Email" value={profilePreview.email} />
+            <ProfileCard
+              label="DOB / Gender"
+              value={`${profilePreview.dob} • ${profilePreview.gender}`}
+            />
+            <ProfileCard label="NIC" value={profilePreview.nic} />
+            <ProfileCard label="Address" value={profilePreview.address} span />
+            <ProfileCard
+              label="Emergency Contact"
+              value={profilePreview.emergency}
+              span
+            />
+            <ProfileCard
+              label="Blood Group"
+              value={profilePreview.bloodGroup}
+            />
+            <ProfileCard
+              label="Height / Weight"
+              value={`${profilePreview.height} • ${profilePreview.weight}`}
+            />
+            <ProfileCard
+              label="Allergies"
+              value={profilePreview.allergies}
+              span
+            />
+            <ProfileCard
+              label="Chronic Conditions"
+              value={profilePreview.conditions}
+              span
+            />
           </div>
         )}
 
         {/* EDIT MODE */}
         {editMode && (
-          <form onSubmit={onSave} className="bg-white rounded-2xl p-6 ring-1 ring-gray-100 shadow-sm space-y-5">
+          <form
+            onSubmit={onSave}
+            className="bg-white rounded-2xl p-6 ring-1 ring-gray-100 shadow-sm space-y-5"
+          >
             <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-gray-600">Full Name</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Full Name
+                </label>
                 <input
                   className={inputClass("fullName")}
                   value={form.fullName}
@@ -506,17 +510,22 @@ export default function Profile() {
                 <ErrorText k="fullName" />
               </div>
 
-              <div>
-                <label className="text-sm text-gray-600">Email (readonly)</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Email{" "}
+                  <span className="normal-case font-normal">(readonly)</span>
+                </label>
                 <input
-                  className="w-full rounded-xl px-3 py-2 bg-gray-100 ring-1 ring-gray-200"
+                  className="h-10 w-full rounded-xl border border-gray-200 bg-gray-100 px-3 text-sm text-gray-500 cursor-not-allowed"
                   value={form.email}
                   readOnly
                 />
               </div>
 
-              <div>
-                <label className="text-sm text-gray-600">DOB</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  DOB
+                </label>
                 <input
                   type="date"
                   className={inputClass("dob")}
@@ -526,8 +535,10 @@ export default function Profile() {
                 <ErrorText k="dob" />
               </div>
 
-              <div>
-                <label className="text-sm text-gray-600">Gender</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Gender
+                </label>
                 <select
                   className={inputClass("gender")}
                   value={form.gender}
@@ -541,8 +552,10 @@ export default function Profile() {
                 <ErrorText k="gender" />
               </div>
 
-              <div>
-                <label className="text-sm text-gray-600">NIC</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  NIC
+                </label>
                 <input
                   className={inputClass("nic")}
                   value={form.nic}
@@ -553,63 +566,90 @@ export default function Profile() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm text-gray-600">District</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  District
+                </label>
                 <input
                   className={inputClass("address.district")}
                   value={form.address.district}
-                  onChange={(e) => updateNested("address.district", e.target.value)}
+                  onChange={(e) =>
+                    updateNested("address.district", e.target.value)
+                  }
                 />
               </div>
-              <div>
-                <label className="text-sm text-gray-600">City</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  City
+                </label>
                 <input
                   className={inputClass("address.city")}
                   value={form.address.city}
                   onChange={(e) => updateNested("address.city", e.target.value)}
                 />
               </div>
-              <div>
-                <label className="text-sm text-gray-600">Address line</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Address Line
+                </label>
                 <input
                   className={inputClass("address.line1")}
                   value={form.address.line1}
-                  onChange={(e) => updateNested("address.line1", e.target.value)}
+                  onChange={(e) =>
+                    updateNested("address.line1", e.target.value)
+                  }
                 />
               </div>
             </div>
 
             <div className="grid md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm text-gray-600">Emergency Name</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Emergency Name
+                </label>
                 <input
                   className={inputClass("emergencyContact.name")}
                   value={form.emergencyContact.name}
-                  onChange={(e) => updateNested("emergencyContact.name", e.target.value)}
+                  onChange={(e) =>
+                    updateNested("emergencyContact.name", e.target.value)
+                  }
                 />
               </div>
-              <div>
-                <label className="text-sm text-gray-600">Emergency Phone</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Emergency Phone
+                </label>
                 <input
                   className={inputClass("emergencyContact.phone")}
                   value={form.emergencyContact.phone}
-                  onChange={(e) => updateNested("emergencyContact.phone", e.target.value)}
+                  onChange={(e) =>
+                    updateNested("emergencyContact.phone", e.target.value)
+                  }
                 />
                 <ErrorText k="emergencyContact.phone" />
               </div>
-              <div>
-                <label className="text-sm text-gray-600">Relationship</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Relationship
+                </label>
                 <input
                   className={inputClass("emergencyContact.relationship")}
                   value={form.emergencyContact.relationship}
-                  onChange={(e) => updateNested("emergencyContact.relationship", e.target.value)}
+                  onChange={(e) =>
+                    updateNested(
+                      "emergencyContact.relationship",
+                      e.target.value,
+                    )
+                  }
                 />
               </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-gray-600">Blood Group</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Blood Group
+                </label>
                 <input
                   className={inputClass("bloodGroup")}
                   value={form.bloodGroup}
@@ -618,8 +658,10 @@ export default function Profile() {
                 <ErrorText k="bloodGroup" />
               </div>
 
-              <div>
-                <label className="text-sm text-gray-600">Height (cm)</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Height (cm)
+                </label>
                 <input
                   className={inputClass("heightCm")}
                   value={form.heightCm}
@@ -628,8 +670,10 @@ export default function Profile() {
                 <ErrorText k="heightCm" />
               </div>
 
-              <div>
-                <label className="text-sm text-gray-600">Weight (kg)</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Weight (kg)
+                </label>
                 <input
                   className={inputClass("weightKg")}
                   value={form.weightKg}
@@ -638,23 +682,35 @@ export default function Profile() {
                 <ErrorText k="weightKg" />
               </div>
 
-              <div>
-                <label className="text-sm text-gray-600">Allergies (comma separated)</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Allergies{" "}
+                  <span className="normal-case font-normal">
+                    (comma separated)
+                  </span>
+                </label>
                 <input
                   className={inputClass("allergies")}
                   value={form.allergies}
                   onChange={(e) => setField("allergies", e.target.value)}
-                  placeholder="Peanuts, Dust..."
+                  placeholder="Peanuts, Dust…"
                 />
               </div>
 
-              <div className="md:col-span-2">
-                <label className="text-sm text-gray-600">Chronic Conditions (comma separated)</label>
+              <div className="md:col-span-2 flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Chronic Conditions{" "}
+                  <span className="normal-case font-normal">
+                    (comma separated)
+                  </span>
+                </label>
                 <input
                   className={inputClass("chronicConditions")}
                   value={form.chronicConditions}
-                  onChange={(e) => setField("chronicConditions", e.target.value)}
-                  placeholder="Diabetes, Asthma..."
+                  onChange={(e) =>
+                    setField("chronicConditions", e.target.value)
+                  }
+                  placeholder="Diabetes, Asthma…"
                 />
               </div>
             </div>
@@ -662,7 +718,7 @@ export default function Profile() {
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-black text-white text-sm font-medium hover:opacity-95 transition"
+                className="h-10 px-6 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 active:scale-[0.98] transition shadow-sm"
               >
                 Save Changes
               </button>
@@ -674,7 +730,7 @@ export default function Profile() {
                   setErrors({});
                   setEditMode(false);
                 }}
-                className="px-5 py-2.5 rounded-xl bg-gray-100 text-gray-900 text-sm font-medium hover:bg-gray-200 transition"
+                className="h-10 px-5 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 text-sm font-medium hover:bg-gray-100 hover:border-gray-300 active:scale-[0.98] transition shadow-sm"
               >
                 Cancel
               </button>
@@ -683,25 +739,43 @@ export default function Profile() {
         )}
       </div>
       {/* Danger Zone */}
-<div className="mt-10 bg-red-50 rounded-2xl p-6 ring-1 ring-red-100">
-  <div className="flex items-center justify-between flex-wrap gap-4">
-    <div>
-      <div className="text-sm font-semibold text-red-700">
-        Deactivate Account
-      </div>
-      <div className="text-xs text-red-600 mt-1">
-        This will disable your account and prevent login access.
+      <div className="mt-10 bg-red-50 rounded-2xl p-6 ring-1 ring-red-100">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div className="text-sm font-semibold text-red-700">
+              Deactivate Account
+            </div>
+            <div className="text-xs text-red-600 mt-1">
+              This will disable your account and prevent login access.
+            </div>
+          </div>
+
+          <button
+            onClick={deactivateAccount}
+            className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm hover:opacity-95 transition"
+          >
+            Deactivate
+          </button>
+        </div>
       </div>
     </div>
+  );
+}
 
-    <button
-      onClick={deactivateAccount}
-      className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm hover:opacity-95 transition"
+function ProfileCard({ label, value, span }) {
+  return (
+    <div
+      className={
+        "bg-white rounded-2xl px-5 py-4 border border-gray-100 shadow-sm " +
+        (span ? "md:col-span-2" : "")
+      }
     >
-      Deactivate
-    </button>
-  </div>
-</div>
+      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+        {label}
+      </div>
+      <div className="text-sm font-semibold text-gray-900 leading-snug">
+        {value || "—"}
+      </div>
     </div>
   );
 }

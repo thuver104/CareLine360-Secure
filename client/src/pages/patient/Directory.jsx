@@ -90,10 +90,10 @@ export default function Directory() {
         ]);
 
         const hList = normalizeList(hRes.data).sort((a, b) =>
-          (a?.name || "").localeCompare(b?.name || "")
+          (a?.name || "").localeCompare(b?.name || ""),
         );
         const dList = normalizeList(dRes.data).sort((a, b) =>
-          (a?.fullName || "").localeCompare(b?.fullName || "")
+          (a?.fullName || "").localeCompare(b?.fullName || ""),
         );
 
         setHospitals(hList);
@@ -174,10 +174,15 @@ export default function Directory() {
   const list = tab === "hospitals" ? filteredHospitals : filteredDoctors;
   const active = tab === "hospitals" ? selectedHospital : selectedDoctor;
 
-  const title = tab === "hospitals" ? active?.name || "Hospital" : active?.fullName || "Doctor";
+  const title =
+    tab === "hospitals"
+      ? active?.name || "Hospital"
+      : active?.fullName || "Doctor";
   const subtitle =
     tab === "hospitals"
-      ? safeStr(active?.address) ? "Tap to view details" : ""
+      ? safeStr(active?.address)
+        ? "Tap to view details"
+        : ""
       : active?.specialization || "";
 
   // Hospital model has no avatarUrl, so always show emoji for hospitals
@@ -203,8 +208,12 @@ export default function Directory() {
 
         <div className="flex items-center justify-between gap-3 mb-5">
           <div>
-            <h1 className="text-3xl md:text-4xl font-semibold text-gray-900">Directory</h1>
-            <p className="text-gray-600 mt-1">Hospitals and Doctors (click to view details)</p>
+            <h1 className="text-3xl md:text-4xl font-semibold text-gray-900">
+              Directory
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Hospitals and Doctors (click to view details)
+            </p>
           </div>
           <a
             href="/patient/dashboard"
@@ -251,10 +260,14 @@ export default function Directory() {
                 </button>
               </div>
 
-              <div className="mt-4 px-4 py-3 rounded-2xl bg-gray-50 border border-gray-100 focus-within:ring-2 focus-within:ring-blue-200">
+              <div className="mt-4">
                 <input
-                  className="w-full bg-transparent outline-none text-sm"
-                  placeholder={tab === "hospitals" ? "Search hospitals..." : "Search doctors..."}
+                  className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm hover:border-gray-300 transition"
+                  placeholder={
+                    tab === "hospitals"
+                      ? "Search hospitals…"
+                      : "Search doctors…"
+                  }
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                 />
@@ -267,7 +280,9 @@ export default function Directory() {
                   </div>
                 ) : tab === "hospitals" ? (
                   list.map((h) => {
-                    const isActive = String(selectedHospital?._id || "") === String(h?._id || "");
+                    const isActive =
+                      String(selectedHospital?._id || "") ===
+                      String(h?._id || "");
                     return (
                       <button
                         key={h?._id}
@@ -279,12 +294,24 @@ export default function Directory() {
                             : "border-gray-100 hover:shadow-sm bg-white")
                         }
                       >
-                        <div className="text-sm font-semibold">{h?.name || "Hospital"}</div>
-                        <div className={"text-xs mt-1 " + (isActive ? "text-white/70" : "text-gray-500")}>
+                        <div className="text-sm font-semibold">
+                          {h?.name || "Hospital"}
+                        </div>
+                        <div
+                          className={
+                            "text-xs mt-1 " +
+                            (isActive ? "text-white/70" : "text-gray-500")
+                          }
+                        >
                           {h?.address ? h.address : "—"}
                         </div>
                         {h?.contact ? (
-                          <div className={"text-xs mt-2 " + (isActive ? "text-white/70" : "text-gray-600")}>
+                          <div
+                            className={
+                              "text-xs mt-2 " +
+                              (isActive ? "text-white/70" : "text-gray-600")
+                            }
+                          >
                             📞 {h.contact}
                           </div>
                         ) : null}
@@ -293,7 +320,9 @@ export default function Directory() {
                   })
                 ) : (
                   list.map((d) => {
-                    const isActive = String(selectedDoctor?._id || "") === String(d?._id || "");
+                    const isActive =
+                      String(selectedDoctor?._id || "") ===
+                      String(d?._id || "");
                     return (
                       <button
                         key={d?._id}
@@ -305,12 +334,24 @@ export default function Directory() {
                             : "border-gray-100 hover:shadow-sm bg-white")
                         }
                       >
-                        <div className="text-sm font-semibold">{d?.fullName || "Doctor"}</div>
-                        <div className={"text-xs mt-1 " + (isActive ? "text-white/70" : "text-gray-500")}>
+                        <div className="text-sm font-semibold">
+                          {d?.fullName || "Doctor"}
+                        </div>
+                        <div
+                          className={
+                            "text-xs mt-1 " +
+                            (isActive ? "text-white/70" : "text-gray-500")
+                          }
+                        >
                           {d?.specialization || "—"}
                         </div>
                         {d?.phone ? (
-                          <div className={"text-xs mt-2 " + (isActive ? "text-white/70" : "text-gray-600")}>
+                          <div
+                            className={
+                              "text-xs mt-2 " +
+                              (isActive ? "text-white/70" : "text-gray-600")
+                            }
+                          >
                             📞 {d.phone}
                           </div>
                         ) : null}
@@ -339,14 +380,26 @@ export default function Directory() {
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
                         {imageUrl ? (
-                          <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                          <img
+                            src={imageUrl}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
-                          <span className="text-xl">{tab === "hospitals" ? "🏥" : "👨‍⚕️"}</span>
+                          <span className="text-xl">
+                            {tab === "hospitals" ? "🏥" : "👨‍⚕️"}
+                          </span>
                         )}
                       </div>
                       <div>
-                        <div className="text-2xl font-semibold text-gray-900">{title}</div>
-                        {subtitle ? <div className="text-sm text-gray-600 mt-1">{subtitle}</div> : null}
+                        <div className="text-2xl font-semibold text-gray-900">
+                          {title}
+                        </div>
+                        {subtitle ? (
+                          <div className="text-sm text-gray-600 mt-1">
+                            {subtitle}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
 
@@ -372,8 +425,14 @@ export default function Directory() {
                         <InfoRow label="Name" value={active?.name} />
                         <InfoRow label="Address" value={active?.address} />
                         <InfoRow label="Contact" value={active?.contact} />
-                        <InfoRow label="Latitude" value={active?.lat != null ? String(active.lat) : ""} />
-                        <InfoRow label="Longitude" value={active?.lng != null ? String(active.lng) : ""} />
+                        <InfoRow
+                          label="Latitude"
+                          value={active?.lat != null ? String(active.lat) : ""}
+                        />
+                        <InfoRow
+                          label="Longitude"
+                          value={active?.lng != null ? String(active.lng) : ""}
+                        />
 
                         {/* Optional: show Google Maps link */}
                         {active?.lat != null && active?.lng != null ? (
@@ -393,11 +452,25 @@ export default function Directory() {
                       <>
                         <InfoRow label="Doctor ID" value={active?.doctorId} />
                         <InfoRow label="Phone" value={active?.phone} />
-                        <InfoRow label="Specialization" value={active?.specialization} />
-                        <InfoRow label="Experience" value={active?.experience ? `${active.experience} years` : ""} />
+                        <InfoRow
+                          label="Specialization"
+                          value={active?.specialization}
+                        />
+                        <InfoRow
+                          label="Experience"
+                          value={
+                            active?.experience
+                              ? `${active.experience} years`
+                              : ""
+                          }
+                        />
                         <InfoRow
                           label="Consultation Fee"
-                          value={active?.consultationFee ? `Rs. ${active.consultationFee}` : ""}
+                          value={
+                            active?.consultationFee
+                              ? `Rs. ${active.consultationFee}`
+                              : ""
+                          }
                         />
                         <InfoRow
                           label="Rating"
@@ -409,18 +482,27 @@ export default function Directory() {
                                 : ""
                           }
                         />
-                        <InfoRow label="License No" value={active?.licenseNumber} />
+                        <InfoRow
+                          label="License No"
+                          value={active?.licenseNumber}
+                        />
 
                         {safeStr(active?.bio) ? (
                           <div className="mt-4 p-4 rounded-3xl bg-gray-50 border border-gray-100">
-                            <div className="text-sm font-semibold text-gray-900">Bio</div>
-                            <div className="text-sm text-gray-700 mt-2 whitespace-pre-line">{active.bio}</div>
+                            <div className="text-sm font-semibold text-gray-900">
+                              Bio
+                            </div>
+                            <div className="text-sm text-gray-700 mt-2 whitespace-pre-line">
+                              {active.bio}
+                            </div>
                           </div>
                         ) : null}
 
                         {(active?.qualifications || []).length ? (
                           <div className="mt-4">
-                            <div className="text-sm font-semibold text-gray-900">Qualifications</div>
+                            <div className="text-sm font-semibold text-gray-900">
+                              Qualifications
+                            </div>
                             <div className="mt-2 flex flex-wrap gap-2">
                               {active.qualifications.map((qq, idx) => (
                                 <Tag key={idx}>{qq}</Tag>
@@ -431,11 +513,18 @@ export default function Directory() {
 
                         {(active?.availabilitySlots || []).length ? (
                           <div className="mt-4">
-                            <div className="text-sm font-semibold text-gray-900">Availability</div>
+                            <div className="text-sm font-semibold text-gray-900">
+                              Availability
+                            </div>
                             <div className="mt-2 grid sm:grid-cols-2 gap-2">
                               {active.availabilitySlots.map((s, idx) => (
-                                <div key={idx} className="p-3 rounded-2xl bg-gray-50 border border-gray-100">
-                                  <div className="text-sm font-semibold text-gray-900">{s.day || "Day"}</div>
+                                <div
+                                  key={idx}
+                                  className="p-3 rounded-2xl bg-gray-50 border border-gray-100"
+                                >
+                                  <div className="text-sm font-semibold text-gray-900">
+                                    {s.day || "Day"}
+                                  </div>
                                   <div className="text-xs text-gray-600 mt-1">
                                     {s.startTime || "—"} - {s.endTime || "—"}
                                   </div>

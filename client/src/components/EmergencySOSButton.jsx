@@ -8,12 +8,13 @@ export default function EmergencySOSFloating() {
 
   const getCurrentPosition = () =>
     new Promise((resolve, reject) => {
-      if (!navigator.geolocation) return reject(new Error("Geolocation not supported"));
+      if (!navigator.geolocation)
+        return reject(new Error("Geolocation not supported"));
 
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve(pos),
         (e) => reject(e),
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
       );
     });
 
@@ -30,8 +31,10 @@ export default function EmergencySOSFloating() {
       const pos = await getCurrentPosition();
       const latitude = pos.coords.latitude;
       const longitude = pos.coords.longitude;
+      const patient = localStorage.getItem("userId");
 
-      await api.post("/patients", {
+      await api.post("/emergency", {
+        patient,
         description: "SOS emergency triggered from patient app",
         latitude,
         longitude,
@@ -41,10 +44,14 @@ export default function EmergencySOSFloating() {
       setTimeout(() => setToast(""), 3500);
     } catch (e) {
       const code = e?.code;
-      if (code === 1) setErr("Location permission denied. Please allow location.");
+      if (code === 1)
+        setErr("Location permission denied. Please allow location.");
       else if (code === 2) setErr("Location unavailable. Turn on GPS.");
       else if (code === 3) setErr("Location timed out. Try again.");
-      else setErr(e?.response?.data?.message || e?.message || "Failed to send SOS.");
+      else
+        setErr(
+          e?.response?.data?.message || e?.message || "Failed to send SOS.",
+        );
       setTimeout(() => setErr(""), 4500);
     } finally {
       setLoading(false);

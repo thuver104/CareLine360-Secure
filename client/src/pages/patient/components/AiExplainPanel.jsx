@@ -89,7 +89,17 @@ export default function AiExplainPanel({ initialText = "" }) {
 
       setExplanation(res.data.explanation || "");
     } catch (e) {
-      setError(e?.response?.data?.message || "AI request failed.");
+      const status = e?.response?.status;
+      if (status === 429) {
+        setError("AI quota exceeded. Please wait a minute and try again.");
+      } else {
+        setError(
+          e?.response?.data?.message ||
+            e?.response?.data?.detail ||
+            e?.message ||
+            "AI request failed.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -107,12 +117,14 @@ export default function AiExplainPanel({ initialText = "" }) {
   const typingInProgress = !!explanation && typed.length < explanation.length;
 
   return (
-    <div className="bg-white rounded-2xl shadow p-4">
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <h2 className="text-lg font-semibold">AI Medical Explanation</h2>
+    <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-6">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2 className="text-lg font-semibold text-gray-900">
+          AI Medical Explanation
+        </h2>
 
         <select
-          className="border rounded-lg px-3 py-2 text-sm"
+          className="h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm hover:border-gray-300 transition"
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
           disabled={loading}
@@ -124,25 +136,25 @@ export default function AiExplainPanel({ initialText = "" }) {
       </div>
 
       <textarea
-        className="w-full border rounded-xl p-3 min-h-[140px] text-sm"
+        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 min-h-[140px] text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm hover:border-gray-300 transition resize-y"
         placeholder="Paste prescription text, diagnosis, medicine names, ICD code…"
         value={text}
         onChange={(e) => setText(e.target.value)}
         disabled={loading}
       />
 
-      <div className="flex items-center gap-3 mt-3">
+      <div className="flex items-center gap-3 mt-4">
         <button
           onClick={onExplain}
           disabled={loading}
-          className="bg-black text-white px-4 py-2 rounded-xl text-sm disabled:opacity-60"
+          className="h-10 px-6 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 active:scale-[0.98] disabled:opacity-50 transition shadow-sm"
         >
-          {loading ? "Explaining..." : "Explain"}
+          {loading ? "Explaining…" : "Explain"}
         </button>
 
         <button
           onClick={onClear}
-          className="border px-4 py-2 rounded-xl text-sm disabled:opacity-60"
+          className="h-10 px-5 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 text-sm font-medium hover:bg-gray-100 hover:border-gray-300 active:scale-[0.98] disabled:opacity-50 transition shadow-sm"
           disabled={loading}
         >
           Clear

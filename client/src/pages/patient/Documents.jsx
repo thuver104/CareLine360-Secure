@@ -30,10 +30,11 @@ export default function Documents() {
       { label: "AI Chat", href: "/patient/messages" },
       { label: "Directory", href: "/patient/directory" },
     ],
-    []
+    [],
   );
 
-  const activePath = typeof window !== "undefined" ? window.location.pathname : "";
+  const activePath =
+    typeof window !== "undefined" ? window.location.pathname : "";
 
   const categories = [
     { value: "lab_report", label: "Lab Report" },
@@ -55,8 +56,8 @@ export default function Documents() {
     msgType === "success"
       ? "bg-green-50 text-green-800 ring-1 ring-green-100"
       : msgType === "error"
-      ? "bg-red-50 text-red-800 ring-1 ring-red-100"
-      : "bg-blue-50 text-blue-800 ring-1 ring-blue-100";
+        ? "bg-red-50 text-red-800 ring-1 ring-red-100"
+        : "bg-blue-50 text-blue-800 ring-1 ring-blue-100";
 
   const loadDocs = async () => {
     setLoading(true);
@@ -151,47 +152,45 @@ export default function Documents() {
   };
 
   const handleOpen = (doc) => {
-  const url = doc.viewUrl || doc.fileUrl;
+    const url = doc.viewUrl || doc.fileUrl;
 
-  // Images
-  if (doc.mimeType?.startsWith("image/")) {
-    window.open(url, "_blank", "noopener,noreferrer");
-    return;
-  }
+    // Images
+    if (doc.mimeType?.startsWith("image/")) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
 
-  // PDF
-  if (doc.mimeType === "application/pdf") {
-    window.open(url, "_blank", "noopener,noreferrer");
-    return;
-  }
+    // PDF
+    if (doc.mimeType === "application/pdf") {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
 
-  // Word documents → use Google viewer
-  const isWord =
-    doc.mimeType === "application/msword" ||
-    doc.mimeType ===
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    // Word documents → use Google viewer
+    const isWord =
+      doc.mimeType === "application/msword" ||
+      doc.mimeType ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-  if (isWord) {
-    const gview = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(url)}`;
-    window.open(gview, "_blank", "noopener,noreferrer");
-    return;
-  }
+    if (isWord) {
+      const gview = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(url)}`;
+      window.open(gview, "_blank", "noopener,noreferrer");
+      return;
+    }
 
-  // fallback download
-  window.open(url, "_blank");
-};
+    // fallback download
+    window.open(url, "_blank");
+  };
 
-const Spinner = ({ size = 28 }) => (
+  const Spinner = ({ size = 28 }) => (
     <div className="flex flex-col items-center justify-center py-12">
-        <div
+      <div
         className="rounded-full border-3 border-gray-200 border-t-black animate-spin"
         style={{ width: size, height: size }}
         aria-label="Loading"
-        />
+      />
 
-        <div className="text-sm text-gray-500 animate-pulse">
-        Loading data...
-      </div>
+      <div className="text-sm text-gray-500 animate-pulse">Loading data...</div>
     </div>
   );
 
@@ -224,7 +223,9 @@ const Spinner = ({ size = 28 }) => (
                   href={item.href}
                   className={
                     "relative py-1 transition-colors " +
-                    (isActive ? "text-gray-900 font-medium" : "hover:text-gray-900")
+                    (isActive
+                      ? "text-gray-900 font-medium"
+                      : "hover:text-gray-900")
                   }
                 >
                   {item.label}
@@ -315,21 +316,25 @@ const Spinner = ({ size = 28 }) => (
           </div>
           <a
             href="/patient/dashboard"
-            className="px-4 py-2 rounded-xl bg-white ring-1 ring-gray-200 text-sm hover:bg-gray-50 transition"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition shadow-sm"
           >
-            Back
+            ← Back
           </a>
         </div>
 
-        {msg && <div className={`mb-4 p-3 rounded-xl text-sm ${msgClass}`}>{msg}</div>}
+        {msg && (
+          <div className={`mb-4 p-3 rounded-xl text-sm ${msgClass}`}>{msg}</div>
+        )}
 
         {/* Upload */}
         <div className="bg-white rounded-2xl p-6 ring-1 ring-gray-100 shadow-sm mb-6">
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="md:col-span-1">
-              <label className="text-sm text-gray-600">Category</label>
+          <div className="grid md:grid-cols-3 gap-5">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Category
+              </label>
               <select
-                className="w-full rounded-xl px-3 py-2 ring-1 ring-gray-200 bg-white"
+                className="h-10 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm hover:border-gray-300 transition"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
@@ -341,35 +346,45 @@ const Spinner = ({ size = 28 }) => (
               </select>
             </div>
 
-            <div className="md:col-span-1">
-              <label className="text-sm text-gray-600">Title (optional)</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Title{" "}
+                <span className="normal-case font-normal">(optional)</span>
+              </label>
               <input
-                className="w-full rounded-xl px-3 py-2 ring-1 ring-gray-200 bg-white"
+                className="h-10 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm hover:border-gray-300 transition"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Blood Test - Feb"
               />
             </div>
 
-            <div className="md:col-span-1">
-              <label className="text-sm text-gray-600">File</label>
-              <input
-                ref={fileRef}
-                type="file"
-                className="w-full"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
-              />
-              <div className="text-xs text-gray-500 mt-1">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                File
+              </label>
+              <label className="flex items-center h-10 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-500 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition shadow-sm overflow-hidden">
+                <span className="truncate">
+                  {file ? file.name : "Choose file…"}
+                </span>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+                />
+              </label>
+              <p className="text-xs text-gray-400">
                 Max 10MB • PDF/Image/DOC/DOCX
-              </div>
+              </p>
             </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-5">
             <button
               onClick={upload}
-              className="px-5 py-2.5 rounded-xl bg-black text-white text-sm font-medium hover:opacity-95 transition"
+              className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 active:scale-[0.98] transition shadow-sm"
             >
               Upload Document
             </button>
@@ -377,43 +392,53 @@ const Spinner = ({ size = 28 }) => (
         </div>
 
         {/* filter and search */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="text-sm text-gray-600">Filter:</div>
-          {/* Category Filter */}
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-3 py-2 rounded-xl ring-1 ring-gray-200 bg-white text-sm"
-          >
-            <option value="all">All</option>
-            {categories.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
+        <div className="bg-white rounded-2xl ring-1 ring-gray-100 shadow-sm px-5 py-4 mb-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+              Filter
+            </span>
 
-          {/* Search */}
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by title or filename..."
-            className="flex-1 px-3 py-2 rounded-xl ring-1 ring-gray-200 bg-white text-sm"
-          />
+            {/* Category Filter */}
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="h-10 w-40 rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm hover:border-gray-300 transition"
+            >
+              <option value="all">All</option>
+              {categories.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
 
-          {/* Clear */}
-          <button
-            onClick={() => setSearch("")}
-            className="px-3 py-2 rounded-xl bg-gray-100 text-gray-900 text-sm hover:bg-gray-200 transition"
-          >
-            Clear
-          </button>
+            {/* Search */}
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by title or filename…"
+              className="h-10 flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm hover:border-gray-300 transition"
+            />
+
+            {/* Clear */}
+            <button
+              onClick={() => {
+                setSearch("");
+                setFilterCategory("all");
+              }}
+              className="h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 text-sm font-medium hover:bg-gray-100 hover:border-gray-300 active:scale-[0.98] transition shadow-sm whitespace-nowrap"
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
         {/* List */}
         <div className="bg-white rounded-2xl p-6 ring-1 ring-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-sm font-semibold text-gray-900">My Documents</div>
+            <div className="text-sm font-semibold text-gray-900">
+              My Documents
+            </div>
             <button
               onClick={loadDocs}
               className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-900 text-sm hover:bg-gray-200 transition"
@@ -425,7 +450,9 @@ const Spinner = ({ size = 28 }) => (
           {loading ? (
             <Spinner size={38} />
           ) : docs.length === 0 ? (
-            <div className="text-sm text-gray-500">No documents uploaded yet.</div>
+            <div className="text-sm text-gray-500">
+              No documents uploaded yet.
+            </div>
           ) : (
             <div className="space-y-3">
               {docs.map((d) => (
@@ -438,7 +465,10 @@ const Spinner = ({ size = 28 }) => (
                       {d.title || d.fileName || "Untitled"}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
-                      {d.category} • {d.fileSize ? `${(d.fileSize / 1024).toFixed(1)} KB` : "—"}
+                      {d.category} •{" "}
+                      {d.fileSize
+                        ? `${(d.fileSize / 1024).toFixed(1)} KB`
+                        : "—"}
                     </div>
                   </div>
 
