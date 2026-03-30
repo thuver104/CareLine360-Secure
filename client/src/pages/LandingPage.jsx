@@ -63,9 +63,9 @@ export default function LandingPage() {
             <a href="#services" className="hover:text-[#178d95] transition">
               Services
             </a>
-            <a href="#how" className="hover:text-[#178d95] transition">
-              How It Works
-            </a>
+            <Link to="/about" className="hover:text-[#178d95] transition">
+              About Us
+            </Link>
             <a href="#contact" className="hover:text-[#178d95] transition">
               Contact
             </a>
