@@ -627,6 +627,8 @@ module.exports = {
   updateMyProfile,
   uploadAvatar,
   deactivateMyAccount,
+  reactivateAccount,
+  removeAvatar,
   medicalRecord,
   explainMedicalText,
   getMyMedicalRecords,

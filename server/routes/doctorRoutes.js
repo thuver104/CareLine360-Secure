@@ -3,6 +3,7 @@ const { body } = require("express-validator");
 const { authMiddleware, roleMiddleware } = require("../middleware/auth");
 
 const {
+  getDoctorPublicById,
   createProfile,
   getProfile,
   updateProfile,
@@ -40,6 +41,7 @@ const router = express.Router();
 
 // ── Public ────────────────────────────────────────────────────────────────────
 router.get("/public", listDoctors);
+router.get("/public/:id", getDoctorPublicById);
 
 // ── Doctor-only protected ─────────────────────────────────────────────────────
 const doctorAuth = [authMiddleware, roleMiddleware(["doctor"])];

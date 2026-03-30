@@ -23,7 +23,7 @@ const {
 // All appointment routes require authentication
 router.use(authMiddleware);
 
-router.post("/", roleMiddleware(["patient"]), createAppointmentRules, validateRequest, createAppointment);
+router.post("/", roleMiddleware(["patient", "user"]), createAppointmentRules, validateRequest, createAppointment);
 router.get("/", getAppointments);
 router.get("/:id", getAppointmentById);
 router.put("/:id", updateAppointmentRules, validateRequest, updateAppointment);
