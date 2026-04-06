@@ -7,12 +7,14 @@ export default function PatientNavbar() {
 
   const navItems = useMemo(
     () => [
+      { label: "Home", href: "/" },
       { label: "Overview", href: "/patient/dashboard" },
       { label: "Appointments", href: "/appointments" },
       { label: "Documents", href: "/patient/documents" },
       { label: "Medical History", href: "/patient/medical-history" },
       { label: "AI Chat", href: "/patient/messages" },
       { label: "Directory", href: "/patient/directory" },
+      { label: "About Us", href: "/about" },
     ],
     []
   );
@@ -50,7 +52,7 @@ export default function PatientNavbar() {
             className="flex items-center gap-3"
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.35 }}
+            transition={{ duration: 0.35}}
           >
             <div className="w-9 h-9 rounded-full bg-[#178d95]/10 flex items-center justify-center">
               <div className="w-3 h-3 rounded-full bg-[#178d95]" />
@@ -68,7 +70,7 @@ export default function PatientNavbar() {
                   key={item.href}
                   href={item.href}
                   className={
-                    "relative py-1 transition-colors " +
+                    "relative py-1 transition-colors hover:text-[#178d95] hover:-translate-y-1 duration-300" +
                     (isActive ? "text-[#178d95] font-medium" : "hover:text-[#178d95]")
                   }
                 >
@@ -90,13 +92,13 @@ export default function PatientNavbar() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.35 }}
           >
-            <button className="w-9 h-9 rounded-full bg-white shadow-xl grid place-items-center transition-transform hover:scale-[1.03] active:scale-[0.98]">
+            <button className="w-10 h-10 rounded-full bg-white shadow-xl grid place-items-center transition-transform hover:scale-[1.05] active:scale-[0.98] transition hover:shadow-sm hover:-translate-y-1 duration-300">
               <span className="text-lg">🔔</span>
             </button>
 
             <a
             href="/patient/profile"
-            className="w-10 h-10 rounded-full overflow-hidden shadow-xl transition-transform hover:scale-[1.05] active:scale-[0.98] border border-gray-200"
+            className="w-10 h-10 rounded-full overflow-hidden shadow-xl transition-transform hover:scale-[1.05] active:scale-[0.98] border border-gray-200 transition hover:shadow-sm hover:-translate-y-1 duration-300"
             title="Profile"
             >
             {me?.avatarUrl ? (
@@ -114,7 +116,7 @@ export default function PatientNavbar() {
 
             <button
               onClick={handleLogout}
-              className="px-4 py-2 rounded-full bg-[#178d95] text-white text-sm shadow-xl hover:bg-[#126b73] transition active:scale-[0.98]"
+              className="px-4 py-2 rounded-full bg-[#178d95] text-white text-sm shadow-xl hover:bg-[#126b73] transition active:scale-[0.98] hover:shadow-sm hover:-translate-y-1 duration-300"
             >
               Logout
             </button>

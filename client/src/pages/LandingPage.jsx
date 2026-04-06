@@ -18,6 +18,7 @@ import {
   FaStethoscope,
   FaTimes,
 } from "react-icons/fa";
+import PatientNavbar from "./patient/components/PatientNavbar";
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -31,8 +32,6 @@ export default function LandingPage() {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [selectedHospital, setSelectedHospital] = useState(null);
 
-  const doctorDetailsRef = useRef(null);
-  const hospitalDetailsRef = useRef(null);
 
   const [showAllDoctors, setShowAllDoctors] = useState(false);
   const [showAllHospitals, setShowAllHospitals] = useState(false);
@@ -153,62 +152,14 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#edf4f4] overflow-x-hidden text-[15px]">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-6">
       <div className="absolute top-0 left-0 w-full h-[420px] bg-gradient-to-r from-[#dff6f6] via-[#eff8f8] to-[#d9f1f2] blur-3xl opacity-70 -z-10" />
-
+      
+      <PatientNavbar />
+      
       <section className="w-full mx-auto bg-white/80 backdrop-blur-xl border border-white/60  relative">
         <div className="absolute top-[-60px] right-[-40px] w-[220px] h-[220px] rounded-full bg-[#178d95]/10 blur-2xl" />
         <div className="absolute bottom-[-80px] left-[-60px] w-[260px] h-[260px] rounded-full bg-[#178d95]/10 blur-2xl" />
-
-        <header className="flex items-center justify-between px-6 md:px-12 py-4 mt-6 rounded-lg max-w-[1500px] mx-auto relative z-10 bg-white/70 border border-[#edf1f3]">
-          <div>
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[#0f172a]">
-              Care Line 360
-            </h1>
-            <p className="text-[11px] md:text-xs text-[#178d95] font-medium tracking-[0.14em] uppercase mt-1">
-              Smart Rural Healthcare Access
-            </p>
-          </div>
-
-          <nav className="hidden lg:flex items-center gap-8 text-[13px] font-medium text-[#334155]">
-            <a href="#home" className="hover:text-[#178d95] transition">
-              Home
-            </a>
-            <a href="#services" className="hover:text-[#178d95] transition">
-              Services
-            </a>
-            <Link to="/about" className="hover:text-[#178d95] transition">
-              About Us
-            </Link>
-            <a href="#contact" className="hover:text-[#178d95] transition">
-              Contact
-            </a>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="hidden md:inline-flex px-4 py-2 rounded-full border border-[#178d95]/30 text-[#178d95] text-sm font-medium hover:bg-[#178d95]/5 transition hover:shadow-sm hover:-translate-y-1 duration-300"
-            >
-              Login
-            </Link>
-
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#178d95] text-white text-sm font-medium hover:bg-[#126f76] transition hover:shadow-sm hover:-translate-y-1 duration-300"
-            >
-              Register
-            </Link>
-
-            <button className="w-10 h-10 rounded-full bg-white border border-[#dbe4e6] flex items-center justify-center lg:hidden">
-              <div className="space-y-[4px]">
-                <span className="block w-5 h-[2px] bg-[#334155]" />
-                <span className="block w-5 h-[2px] bg-[#334155]" />
-                <span className="block w-5 h-[2px] bg-[#334155]" />
-              </div>
-            </button>
-          </div>
-        </header>
 
         <main
           id="home"
@@ -243,7 +194,7 @@ export default function LandingPage() {
               </Link>
 
               <Link
-                to="/doctors"
+                to="/patient/directory"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[#d7dee5] bg-white text-[#0f172a] text-sm font-medium hover:bg-[#f8fafc] transition hover:shadow-sm hover:-translate-y-1 duration-300"
               >
                 Find Doctors
@@ -534,54 +485,93 @@ export default function LandingPage() {
               <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {visibleDoctors.map((doctor) => (
                   <div
-                    key={doctor._id}
-                    className="bg-[#f8f9fa] rounded-2xl p-5 border border-[#e5e7eb] hover:shadow-md transition"
-                  >
-                    <div className="flex items-center gap-4 mb-4">
+                  key={doctor._id}
+                  className="group bg-white rounded-[24px] p-5 border border-[#e8eef0] shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 flex flex-col overflow-hidden"
+                >
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="relative shrink-0">
+                      <div className="absolute inset-0 rounded-full bg-[#178d95]/15 blur-md scale-110" />
                       <img
                         src={doctor.avatarUrl || "/default-doctor.png"}
                         alt={doctor.fullName}
-                        className="w-16 h-16 rounded-full object-cover border"
+                        className="relative w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
                       />
-                      <div>
-                        <h4 className="text-lg font-semibold text-[#0f172a]">
-                          {doctor.fullName}
-                        </h4>
-                        <p className="text-sm text-[#178d95]">
-                          {doctor.specialization || "General"}
-                        </p>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h4 className="text-[17px] font-semibold text-[#0f172a] leading-tight truncate">
+                            {doctor.fullName}
+                          </h4>
+                          <p className="text-sm text-[#178d95] font-medium mt-1">
+                            {doctor.specialization || "General"}
+                          </p>
+                        </div>
+
+                        <div className="shrink-0 px-2.5 py-1 rounded-full bg-[#178d95]/10 text-[#178d95] text-[11px] font-semibold border border-[#178d95]/10">
+                          Verified
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1 text-[#f59e0b] text-sm">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <FaStar
+                              key={star}
+                              className={
+                                star <= Math.round(doctor.rating || 0)
+                                  ? "text-[#f59e0b]"
+                                  : "text-[#e5e7eb]"
+                              }
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs font-medium text-[#475569]">
+                          {doctor.rating || 0} / 5
+                        </span>
                       </div>
                     </div>
-
-                    <div className="space-y-2 text-sm text-[#6b7280]">
-                      <p className="flex items-center gap-2">
-                        <FaStethoscope className="text-[#178d95]" />
-                        {doctor.qualifications || "Qualification not added"}
-                      </p>
-                      <p>Experience: {doctor.experience || 0} years</p>
-                      <p>Fee: Rs. {doctor.consultationFee || 0}</p>
-                      <p>Rating: {doctor.rating || 0} / 5</p>
-                      <p className="line-clamp-2">
-                        {doctor.bio || "No bio available"}
-                      </p>
-                    </div>
-
-                    <div className="mt-5 flex gap-3">
-                      <button
-                        onClick={() => handleViewDoctorDetails(doctor)}
-                        className="px-4 py-2 rounded-full border border-[#178d95] text-[#178d95] text-sm font-medium hover:bg-[#178d95]/5"
-                      >
-                        View Details
-                      </button>
-
-                      <button
-                        onClick={() => handleBookDoctor(doctor)}
-                        className="px-4 py-2 rounded-full bg-[#178d95] text-white text-sm font-medium hover:bg-[#126f76]"
-                      >
-                        Book Now
-                      </button>
-                    </div>
                   </div>
+
+                  <div className="space-y-3 text-sm text-[#64748b] flex-1">
+                    <div className="flex items-center gap-2">
+                      <FaStethoscope className="text-[#178d95] shrink-0" />
+                      <span className="truncate">
+                        {doctor.qualifications || "Qualification not added"}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-3 py-1.5 rounded-full bg-[#f8fafc] border border-[#e2e8f0] text-xs font-medium text-[#334155]">
+                        {doctor.experience || 0} Years Exp
+                      </span>
+                      <span className="px-3 py-1.5 rounded-full bg-[#f8fafc] border border-[#e2e8f0] text-xs font-medium text-[#334155]">
+                        Rs. {doctor.consultationFee || 0}
+                      </span>
+                    </div>
+
+                    <p className="text-xs leading-6 text-[#6b7280] line-clamp-2">
+                      {doctor.bio || "No bio available"}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 flex gap-3 pt-4 border-t border-[#f1f5f9]">
+                    <button
+                      onClick={() => handleViewDoctorDetails(doctor)}
+                      className="flex-1 px-4 py-2.5 rounded-full border border-[#178d95] text-[#178d95] text-sm font-medium hover:bg-[#178d95]/5 transition"
+                    >
+                      View Details
+                    </button>
+
+                    <button
+                      onClick={() => handleBookDoctor(doctor)}
+                      className="flex-1 px-4 py-2.5 rounded-full bg-[#178d95] text-white text-sm font-medium hover:bg-[#126f76] transition"
+                    >
+                      Book Now
+                    </button>
+                  </div>
+                </div>
                 ))}
               </div>
 
@@ -620,49 +610,77 @@ export default function LandingPage() {
               <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {visibleHospitals.map((hospital) => (
                   <div
-                    key={hospital._id}
-                    className="bg-[#f8f9fa] rounded-2xl p-5 border border-[#e5e7eb] hover:shadow-md transition"
-                  >
-                    <div className="mb-4">
-                      <h4 className="text-lg font-semibold text-[#0f172a]">
-                        {hospital.name}
-                      </h4>
-                      <p className="text-sm text-[#178d95]">Active Hospital</p>
+                  key={hospital._id}
+                  className="bg-white rounded-[26px] p-5 border border-[#e6edf0] shadow-sm hover:shadow-lg hover:-translate-y-1 transition duration-300 flex flex-col"
+                >
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-14 h-14 rounded-2xl bg-[#178d95]/10 flex items-center justify-center text-[#178d95] text-lg shrink-0 border border-[#dbe7ea]">
+                      <FaClinicMedical />
                     </div>
 
-                    <div className="space-y-2 text-sm text-[#6b7280]">
-                      <p className="flex items-center gap-2">
-                        <FaMapMarkerAlt className="text-[#178d95]" />
-                        {hospital.address || "Address not available"}
-                      </p>
-                      <p className="flex items-center gap-2">
-                        <FaPhoneAlt className="text-[#178d95]" />
-                        {hospital.contact || "Contact not available"}
-                      </p>
-                      <p>
-                        Location:{" "}
-                        {hospital.lat && hospital.lng
-                          ? `${hospital.lat}, ${hospital.lng}`
-                          : "Location not available"}
-                      </p>
-                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h4 className="text-base font-semibold text-[#0f172a] truncate">
+                            {hospital.name}
+                          </h4>
+                          <p className="text-sm text-[#178d95] font-medium mt-0.5">
+                            Healthcare Center
+                          </p>
+                        </div>
 
-                    <div className="mt-5 flex gap-3">
-                      <button
-                        onClick={() => handleViewHospitalDetails(hospital)}
-                        className="px-4 py-2 rounded-full border border-[#178d95] text-[#178d95] text-sm font-medium hover:bg-[#178d95]/5"
-                      >
-                        View Details
-                      </button>
-
-                      <button
-                        onClick={() => handleBookHospital(hospital)}
-                        className="px-4 py-2 rounded-full bg-[#178d95] text-white text-sm font-medium hover:bg-[#126f76]"
-                      >
-                        Book Now
-                      </button>
+                        <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2.5 py-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                          Active
+                        </span>
+                      </div>
                     </div>
                   </div>
+
+                  <div className="space-y-3 text-sm text-[#64748b] flex-1">
+                    <p className="flex items-start gap-2">
+                      <FaMapMarkerAlt className="text-[#178d95] mt-0.5 shrink-0" />
+                      <span className="line-clamp-2">
+                        {hospital.address || "Address not available"}
+                      </span>
+                    </p>
+
+                    <p className="flex items-center gap-2">
+                      <FaPhoneAlt className="text-[#178d95] shrink-0" />
+                      <span>{hospital.contact || "Contact not available"}</span>
+                    </p>
+
+                    {hospital.lat && hospital.lng ? (
+                      <a
+                        href={`https://www.google.com/maps?q=${hospital.lat},${hospital.lng}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 text-[#178d95] hover:underline text-xs font-medium"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <FaMapMarkerAlt className="shrink-0" />
+                        View on Google Maps
+                      </a>
+                    ) : (
+                      <p className="text-xs text-[#9ca3af]">Location not available</p>
+                    )}
+                  </div>
+
+                  <div className="mt-5 flex gap-3 pt-4 border-t border-[#eef2f4]">
+                    <button
+                      onClick={() => setSelectedHospital(hospital)}
+                      className="flex-1 px-4 py-2.5 rounded-full border border-[#178d95] text-[#178d95] text-sm font-medium hover:bg-[#178d95]/5 transition"
+                    >
+                      View Details
+                    </button>
+                    <button
+                      onClick={() => handleBookHospital(hospital)}
+                      className="flex-1 px-4 py-2.5 rounded-full bg-[#178d95] text-white text-sm font-medium hover:bg-[#126f76] transition"
+                    >
+                      Book Now
+                    </button>
+                  </div>
+                </div>
                 ))}
               </div>
 
@@ -855,7 +873,7 @@ export default function LandingPage() {
           />
           
         <div
-          className="absolute left-1/2 z-50 w-full max-w-3xl px-4 mt-14"
+          className="absolute left-1/2 z-50 w-full max-w-3xl px-4"
           style={{
             top: `${window.scrollY + window.innerHeight / 2}px`,
             transform: "translate(-50%, -50%)",
@@ -973,7 +991,7 @@ export default function LandingPage() {
           />
          
           <div
-          className="absolute left-1/2 z-50 w-full max-w-3xl px-4 mt-10"
+          className="absolute left-1/2 z-50 w-full max-w-3xl px-4 "
           style={{
             top: `${window.scrollY + window.innerHeight / 2}px`,
             transform: "translate(-50%, -50%)",

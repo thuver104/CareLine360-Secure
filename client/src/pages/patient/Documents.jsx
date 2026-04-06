@@ -214,7 +214,7 @@ export default function Documents() {
           </div>
           <a
             href="/patient/dashboard"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-[#178d95] hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition shadow-sm"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 bg-[#178d95] text-sm font-medium text-white hover:bg-[#126b73] active:scale-[0.98] transition shadow-sm hover:shadow-md hover:-translate-y-1 duration-300"
           >
             ← Back
           </a>
@@ -282,7 +282,7 @@ export default function Documents() {
           <div className="mt-5">
             <button
               onClick={upload}
-              className="px-6 py-2.5 rounded-xl bg-[#178d95] text-white text-sm font-semibold hover:bg-[#126b73] active:scale-[0.98] transition shadow-sm"
+              className="px-6 py-2.5 rounded-xl bg-[#178d95] text-white text-sm font-semibold hover:bg-[#126b73] active:scale-[0.98] transition shadow-sm hover:shadow-md hover:-translate-y-1 duration-300"
             >
               Upload Document
             </button>

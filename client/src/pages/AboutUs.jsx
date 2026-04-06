@@ -12,6 +12,7 @@ import {
   FaEnvelope,
   FaMapMarkerAlt,
 } from "react-icons/fa";
+import PatientNavbar from "./patient/components/PatientNavbar";
 
 export default function AboutUs() {
   const values = [
@@ -40,58 +41,14 @@ export default function AboutUs() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#edf4f4] overflow-x-hidden text-[15px]">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white] p-6">
       <div className="absolute top-0 left-0 w-full h-[380px] bg-gradient-to-r from-[#dff6f6] via-[#eff8f8] to-[#d9f1f2] blur-3xl opacity-70 -z-10" />
 
+      {/* Navbar */}
+      <PatientNavbar />
       <section className="w-full mx-auto bg-white/80 backdrop-blur-xl border border-white/60 overflow-hidden relative">
         <div className="absolute top-[-60px] right-[-40px] w-[220px] h-[220px] rounded-full bg-[#178d95]/10 blur-2xl" />
         <div className="absolute bottom-[-80px] left-[-60px] w-[260px] h-[260px] rounded-full bg-[#178d95]/10 blur-2xl" />
-
-        {/* Navbar */}
-        <header className="flex items-center justify-between px-6 md:px-12 py-4 mt-6 rounded-lg max-w-[1500px] mx-auto relative z-10 bg-white/70 border border-[#edf1f3]">
-          <div>
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[#0f172a]">
-              Care Line 360
-            </h1>
-            <p className="text-[11px] md:text-xs text-[#178d95] font-medium tracking-[0.14em] uppercase mt-1">
-              Smart Rural Healthcare Access
-            </p>
-          </div>
-
-          <nav className="hidden lg:flex items-center gap-8 text-[13px] font-medium text-[#334155]">
-            <Link to="/" className="hover:text-[#178d95] transition">
-              Home
-            </Link>
-            <a href="#about" className="hover:text-[#178d95] transition">
-              About
-            </a>
-            <a href="#mission" className="hover:text-[#178d95] transition">
-              Mission
-            </a>
-            <a href="#values" className="hover:text-[#178d95] transition">
-              Values
-            </a>
-            <a href="#contact" className="hover:text-[#178d95] transition">
-              Contact
-            </a>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="hidden md:inline-flex px-4 py-2 rounded-full border border-[#178d95]/30 text-[#178d95] text-sm font-medium hover:bg-[#178d95]/5 transition"
-            >
-              Login
-            </Link>
-
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#178d95] text-white text-sm font-medium hover:bg-[#126f76] transition"
-            >
-              Register
-            </Link>
-          </div>
-        </header>
 
         {/* Hero Section */}
         <section

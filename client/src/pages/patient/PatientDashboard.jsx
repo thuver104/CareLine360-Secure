@@ -299,7 +299,7 @@ export default function PatientDashboard() {
                 </div>
                 <a
                   href="/patient/messages"
-                  className="px-5 py-3 rounded-2xl bg-[#178d95] font-medium text-white shadow-sm hover:opacity-95 transition active:scale-[0.98]"
+                  className="px-5 py-3 rounded-2xl bg-[#178d95] font-medium text-white shadow-sm hover:opacity-95 transition active:scale-[0.98] hover:shadow-md hover:-translate-y-1 duration-300"
                 >
                   AI Chat ↗
                 </a>
