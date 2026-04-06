@@ -92,9 +92,6 @@ export default function PatientNavbar() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.35 }}
           >
-            <button className="w-10 h-10 rounded-full bg-white shadow-xl grid place-items-center transition-transform hover:scale-[1.05] active:scale-[0.98] transition hover:shadow-sm hover:-translate-y-1 duration-300">
-              <span className="text-lg">🔔</span>
-            </button>
 
             <a
             href="/patient/profile"
