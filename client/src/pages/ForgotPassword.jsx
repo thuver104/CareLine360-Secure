@@ -1,133 +1,109 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { api } from "../api/axios";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-export default function ResetPassword() {
+export default function ForgotPassword() {
   const nav = useNavigate();
-  const location = useLocation();
 
-  const [identifier, setIdentifier] = useState(
-    location.state?.identifier || localStorage.getItem("resetIdentifier") || ""
-  );
-
-  const [otp, setOtp] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-
+  const [identifier, setIdentifier] = useState("");
   const [msg, setMsg] = useState("");
+  const [msgType, setMsgType] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (identifier) {
-      localStorage.setItem("resetIdentifier", identifier);
-    }
-  }, [identifier]);
-
-  const reset = async () => {
+  const sendOtp = async (e) => {
+    e.preventDefault();
     setMsg("");
+    setMsgType("");
 
-    if (!otp || otp.length !== 6) {
-      setMsg("OTP must be 6 digits");
-      return;
-    }
+    const cleanIdentifier = identifier.trim();
 
-    if (!newPassword) {
-      setMsg("New password is required");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setMsg("Passwords do not match");
+    if (!cleanIdentifier) {
+      setMsg("Email is required");
+      setMsgType("error");
       return;
     }
 
     try {
       setLoading(true);
 
-      const res = await api.post("/auth/password/reset", {
-        identifier,
-        otp,
-        newPassword,
+      const res = await api.post("/auth/password/forgot", {
+        identifier: cleanIdentifier,
       });
 
-      setMsg(res.data?.message || "Password reset successful");
+      localStorage.setItem("resetIdentifier", cleanIdentifier);
 
-      localStorage.removeItem("resetIdentifier");
+      setMsg(res.data?.message || "OTP sent to your email");
+      setMsgType("success");
 
-      setTimeout(() => nav("/login"), 800);
-    } catch (e) {
-      setMsg(e.response?.data?.message || "Reset failed");
+      setTimeout(() => {
+        nav("/reset-password", {
+          state: { identifier: cleanIdentifier },
+        });
+      }, 700);
+    } catch (err) {
+      setMsg(
+        err.response?.data?.message ||
+          err.response?.data?.errors?.[0]?.msg ||
+          "Failed to send OTP"
+      );
+      setMsgType("error");
     } finally {
       setLoading(false);
     }
   };
 
+  const msgClass =
+    msgType === "success"
+      ? "mb-4 text-sm text-green-700 text-center"
+      : msgType === "error"
+      ? "mb-4 text-sm text-red-600 text-center"
+      : "mb-4 text-sm text-blue-700 text-center";
+
   return (
-    <div className="max-w-md mx-auto p-6 space-y-3">
-      <h1 className="text-2xl font-semibold text-center">Reset Password</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-white px-4">
+      <div className="absolute top-0 left-0 w-full h-[350px] bg-gradient-to-r from-[#dff6f6] via-[#eff8f8] to-[#d9f1f2] blur-3xl opacity-70 -z-10" />
 
-      {msg && <div className="text-sm text-red-600 text-center">{msg}</div>}
+      <div className="w-full max-w-md">
+        <div className="bg-white/90 backdrop-blur-xl border border-white/60 shadow-xl rounded-[28px] p-8">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-semibold text-[#0f172a]">
+              Forgot Password
+            </h1>
+            <p className="text-sm text-[#6b7280] mt-1">
+              Enter your email to receive an OTP for password reset
+            </p>
+          </div>
 
-      <input
-        className="w-full border p-2"
-        value={identifier}
-        onChange={(e) => setIdentifier(e.target.value)}
-      />
+          {msg && <div className={msgClass}>{msg}</div>}
 
-      <input
-        className="w-full border p-2"
-        placeholder="OTP"
-        value={otp}
-        onChange={(e) => setOtp(e.target.value)}
-        maxLength={6}
-      />
+          <form onSubmit={sendOtp} className="space-y-4">
+            <input
+              className="w-full px-4 py-3 rounded-xl border border-[#e5e7eb] focus:border-[#178d95] focus:ring-2 focus:ring-[#178d95]/20 outline-none transition text-sm"
+              placeholder="Email"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+            />
 
-      {/* New Password */}
-      <div className="relative">
-        <input
-          className="w-full border p-2 pr-16"
-          placeholder="New Password (e.g., NewPass@1234)"
-          type={showNew ? "text" : "password"}
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-        />
-        <button
-          type="button"
-          onClick={() => setShowNew(!showNew)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-600"
-        >
-          {showNew ? "Hide" : "Show"}
-        </button>
+            <button
+              disabled={loading}
+              className="w-full py-3 rounded-full bg-[#178d95] text-white text-sm font-medium hover:bg-[#126f76] transition disabled:opacity-60"
+            >
+              {loading ? "Sending..." : "Send OTP"}
+            </button>
+
+            <div className="text-sm text-[#6b7280] text-center">
+              Remember your password?{" "}
+              <button
+                type="button"
+                onClick={() => nav("/login")}
+                className="text-[#178d95] font-medium hover:underline"
+              >
+                Login
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-
-      {/* Confirm Password */}
-      <div className="relative">
-        <input
-          className="w-full border p-2 pr-16"
-          placeholder="Confirm Password"
-          type={showConfirm ? "text" : "password"}
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-        />
-        <button
-          type="button"
-          onClick={() => setShowConfirm(!showConfirm)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-600"
-        >
-          {showConfirm ? "Hide" : "Show"}
-        </button>
-      </div>
-
-      <button
-        disabled={loading}
-        onClick={reset}
-        className="w-full bg-black text-white p-2 disabled:opacity-60"
-      >
-        {loading ? "Resetting..." : "Reset"}
-      </button>
     </div>
   );
 }
