@@ -31,6 +31,7 @@ export default function ChatWidget({ appointment, onClose }) {
   const myUserId = localStorage.getItem("userId");
   const appointmentId = appointment?._id;
   const patientName = appointment?.patientProfile?.fullName || "Patient";
+  const patientAvatar = appointment?.patientProfile?.avatarUrl || null;
 
   // ── Load history + join Socket.io room ────────────────────────────────────
   useEffect(() => {
@@ -221,9 +222,17 @@ export default function ChatWidget({ appointment, onClose }) {
         <div className="bg-teal-600 px-4 py-3 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="relative">
-              <div className="w-8 h-8 rounded-full bg-teal-400 flex items-center justify-center text-white text-sm font-bold">
-                {patientName[0]}
-              </div>
+              {patientAvatar ? (
+                <img
+                  src={patientAvatar}
+                  alt={patientName}
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-teal-400 flex items-center justify-center text-white text-sm font-bold">
+                  {patientName[0]}
+                </div>
+              )}
               <span
                 className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-teal-600 ${connected ? "bg-green-400" : "bg-gray-400"}`}
               />

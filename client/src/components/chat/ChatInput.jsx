@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function ChatInput({ onSend, onTyping, disabled, isTyping, typingUserRole }) {
+export default function ChatInput({ onSend, onTyping, disabled }) {
   const [text, setText] = useState("");
 
   const handleSubmit = (e) => {
@@ -20,19 +20,6 @@ export default function ChatInput({ onSend, onTyping, disabled, isTyping, typing
 
   return (
     <div>
-      {/* Show who is typing */}
-      {isTyping && !disabled && (
-        <div className="px-4 py-1 text-xs text-gray-500 bg-gray-50 border-t border-gray-100">
-          <span className="inline-flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
-            <span className="ml-1">
-              {typingUserRole === 'doctor' ? 'Doctor is typing...' : 'Patient is typing...'}
-            </span>
-          </span>
-        </div>
-      )}
       <form onSubmit={handleSubmit} className="flex space-x-2 p-4 bg-white border-t border-gray-100">
         <input
           type="text"
@@ -40,7 +27,7 @@ export default function ChatInput({ onSend, onTyping, disabled, isTyping, typing
           onChange={handleChange}
           placeholder="Type a message..."
           disabled={disabled}
-          className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 disabled:bg-gray-50"
+          className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 bg-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 disabled:bg-gray-50"
         />
         <button
           type="submit"

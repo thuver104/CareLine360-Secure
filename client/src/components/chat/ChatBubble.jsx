@@ -1,5 +1,14 @@
-export default function ChatBubble({ message, senderRole }) {
-  const roleLabel = senderRole === "doctor" ? "Doctor" : "Patient";
+export default function ChatBubble({ message, senderRole, currentUserRole, doctorName }) {
+  // Determine the label to display
+  const isOwnMessage = senderRole === currentUserRole;
+  let roleLabel;
+  if (isOwnMessage) {
+    roleLabel = "You";
+  } else if (senderRole === "doctor") {
+    roleLabel = doctorName || "Doctor";
+  } else {
+    roleLabel = "Patient";
+  }
 
   return (
     <div className={`flex ${senderRole === "doctor" ? "justify-end" : "justify-start"} mb-3`}>
@@ -24,3 +33,4 @@ export default function ChatBubble({ message, senderRole }) {
     </div>
   );
 }
+

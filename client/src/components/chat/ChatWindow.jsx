@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import ChatBubble from "./ChatBubble";
 
-export default function ChatWindow({ messages, isTyping, typingUserRole }) {
+export default function ChatWindow({ messages, isTyping, typingUserRole, currentUserRole, doctorName }) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -18,6 +18,8 @@ export default function ChatWindow({ messages, isTyping, typingUserRole }) {
           key={msg._id || msg.createdAt}
           message={msg}
           senderRole={msg.senderRole}
+          currentUserRole={currentUserRole}
+          doctorName={doctorName}
         />
       ))}
 
@@ -35,7 +37,7 @@ export default function ChatWindow({ messages, isTyping, typingUserRole }) {
               <span className="w-2 h-2 rounded-full bg-white animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
             <span className="text-xs ml-2">
-              {typingUserRole === 'doctor' ? 'Doctor is typing...' : 'Patient is typing...'}
+              {typingUserRole === 'doctor' ? `${doctorName || 'Doctor'} is typing...` : 'You are typing...'}
             </span>
           </div>
         </div>
@@ -45,3 +47,4 @@ export default function ChatWindow({ messages, isTyping, typingUserRole }) {
     </div>
   );
 }
+

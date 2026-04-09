@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import { getMessages, markAsRead } from "../api/chatApi";
+import { getAppointmentById } from "../api/appointmentApi";
+import { displayName } from "../utils/displayName";
 import {
   getSocket,
   joinChatRoom,
@@ -20,8 +22,27 @@ export default function ChatPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [typingUserRole, setTypingUserRole] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [doctorName, setDoctorName] = useState("Doctor");
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+
+  const currentUserRole = currentUser?.role || "patient";
+
+  // Fetch appointment to get doctor name
+  useEffect(() => {
+    if (!id) return;
+    getAppointmentById(id)
+      .then((res) => {
+        const apt = res.data.data;
+        // Prefer fullName from Doctor profile model, fallback to User model
+        if (apt?.doctorProfile?.fullName) {
+          setDoctorName(apt.doctorProfile.fullName);
+        } else if (apt?.doctor) {
+          setDoctorName(displayName(apt.doctor));
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch appointment:", err));
+  }, [id]);
 
   // Initialize socket connection and set up listeners
   useEffect(() => {
@@ -227,13 +248,13 @@ export default function ChatPage() {
           messages={messages}
           isTyping={isTyping}
           typingUserRole={typingUserRole}
+          currentUserRole={currentUserRole}
+          doctorName={doctorName}
         />
         <ChatInput
           onSend={handleSend}
           onTyping={handleTyping}
           disabled={!currentUser}
-          isTyping={isTyping}
-          typingUserRole={typingUserRole}
         />
       </div>
     </div>

@@ -103,7 +103,7 @@ export default function AppointmentDetail() {
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-xl shadow-sm ring-1 ring-gray-100 p-6">
             <div className="flex justify-between items-start mb-4">
-              <h2 className="text-lg font-semibold">Overview</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Overview</h2>
               <div className="flex space-x-2">
                 <PriorityBadge priority={priority} />
                 <StatusBadge status={status} />
@@ -113,45 +113,45 @@ export default function AppointmentDetail() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">Patient:</span>
-                <p className="font-medium">{displayName(patient)}</p>
+                <p className="font-medium text-gray-900">{displayName(patient)}</p>
               </div>
               <div>
                 <span className="text-gray-500">Doctor:</span>
-                <p className="font-medium">{displayName(doctor)}</p>
-                <p className="text-xs text-gray-400">{doctor?.specialization}</p>
+                <p className="font-medium text-gray-900">{appointment.doctorProfile?.fullName || displayName(doctor)}</p>
+                <p className="text-xs text-gray-400">{appointment.doctorProfile?.specialization || doctor?.specialization}</p>
               </div>
               <div>
                 <span className="text-gray-500">Date:</span>
-                <p className="font-medium">{formatDate(date)}</p>
+                <p className="font-medium text-gray-900">{formatDate(date)}</p>
               </div>
               <div>
                 <span className="text-gray-500">Time:</span>
-                <p className="font-medium">{time}</p>
+                <p className="font-medium text-gray-900">{time}</p>
               </div>
               <div>
                 <span className="text-gray-500">Type:</span>
-                <p className="font-medium capitalize">{consultationType}</p>
+                <p className="font-medium capitalize text-gray-900">{consultationType}</p>
               </div>
             </div>
 
             {symptoms && (
               <div className="mt-4">
                 <span className="text-sm text-gray-500">Symptoms:</span>
-                <p className="text-sm mt-1">{symptoms}</p>
+                <p className="text-sm mt-1 text-gray-900">{symptoms}</p>
               </div>
             )}
 
             {notes && (
               <div className="mt-3">
                 <span className="text-sm text-gray-500">Notes:</span>
-                <p className="text-sm mt-1">{notes}</p>
+                <p className="text-sm mt-1 text-gray-900">{notes}</p>
               </div>
             )}
           </div>
 
           {rescheduleHistory?.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm ring-1 ring-gray-100 p-6">
-              <h3 className="font-semibold mb-3">Reschedule History</h3>
+              <h3 className="font-semibold mb-3 text-gray-900">Reschedule History</h3>
               <div className="space-y-2">
                 {rescheduleHistory.map((h, i) => (
                   <div key={i} className="text-sm text-gray-600 border-l-2 border-yellow-400 pl-3">
@@ -167,7 +167,7 @@ export default function AppointmentDetail() {
 
           {/* Actions */}
           <div className="bg-white rounded-xl shadow-sm ring-1 ring-gray-100 p-6">
-            <h3 className="font-semibold mb-3">Actions</h3>
+            <h3 className="font-semibold mb-3 text-gray-900">Actions</h3>
             <div className="flex flex-wrap gap-2">
               {isDoctor && status === "pending" && (
                 <button
