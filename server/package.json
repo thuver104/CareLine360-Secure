@@ -7,6 +7,11 @@
     "test": "jest --detectOpenHandles --forceExit",
     "test:unit": "jest tests/unit --detectOpenHandles --forceExit",
     "test:integration": "jest tests/integration --detectOpenHandles --forceExit",
+    "test:doctor": "jest tests/unit/doctor tests/integration/doctor --detectOpenHandles --forceExit --verbose",
+    "test:doctor:unit": "jest tests/unit/doctor --detectOpenHandles --forceExit --verbose",
+    "test:doctor:integration": "jest tests/integration/doctor --detectOpenHandles --forceExit --verbose",
+    "test:doctor:perf": "npx artillery run tests/artillery/doctor-load-test.yml",
+    "test:doctor:perf:report": "npx artillery run --output doctor-report.json tests/artillery/doctor-load-test.yml && npx artillery report doctor-report.json",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },

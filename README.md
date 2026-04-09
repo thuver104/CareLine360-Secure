@@ -211,18 +211,40 @@ npm run dev
 ## Testing
 
 ```bash
-# Run all tests
 cd server
-npm test
-
-# Unit tests only
-npm run test:unit
-
-# Integration tests only
-npm run test:integration
 ```
 
-**Test coverage includes:** appointment controller/service/validator, payment controller/service/validator, auth middleware, error handler, chat integration, and Artillery load testing.
+### General
+
+| Command                      | Description                              |
+| ---------------------------- | ---------------------------------------- |
+| `npm test`                   | Run **all** tests in the project         |
+| `npm run test:unit`          | Run all unit tests                       |
+| `npm run test:integration`   | Run all integration tests                |
+
+### Doctor Dashboard Module
+
+| Command                          | Description                                      |
+| -------------------------------- | ------------------------------------------------ |
+| `npm run test:doctor`            | Run all doctor tests (unit + integration)        |
+| `npm run test:doctor:unit`       | Doctor unit tests only (service + controller)    |
+| `npm run test:doctor:integration`| Doctor integration tests only (API endpoints)    |
+| `npm run test:doctor:perf`       | Artillery.io performance / load test             |
+| `npm run test:doctor:perf:report`| Performance test with JSON report generation     |
+
+> **Note:** For performance tests, the server must be running (`npm run dev`) and you need to replace `<DOCTOR_JWT_TOKEN>` in `tests/artillery/doctor-load-test.yml` with a valid JWT.
+
+### Test Summary (Doctor Dashboard)
+
+| Type                 | Tests | Framework                          |
+| -------------------- | ----- | ---------------------------------- |
+| Unit – Service       | 39    | Jest + MongoMemoryServer           |
+| Unit – Controller    | 24    | Jest (mocked service layer)        |
+| Integration – API    | 35    | Jest + Supertest + MongoMemoryServer |
+| Performance          | 12 scenarios | Artillery.io (4 load phases) |
+| **Total**            | **98** |                                   |
+
+**Test coverage includes:** appointment controller/service/validator, payment controller/service/validator, auth middleware, error handler, chat integration, doctor dashboard (profile, availability, appointments, patients, medical records, prescriptions, ratings, analytics, meetings, account management), and Artillery load testing.
 
 ---
 
