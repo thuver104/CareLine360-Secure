@@ -20,7 +20,10 @@ export default function ChatInput({ onSend, onTyping, disabled }) {
 
   return (
     <div>
-      <form onSubmit={handleSubmit} className="flex space-x-2 p-4 bg-white border-t border-gray-100">
+      <form
+        onSubmit={handleSubmit}
+        className="flex space-x-2 p-4 bg-white border-t border-gray-100"
+      >
         <input
           type="text"
           value={text}
