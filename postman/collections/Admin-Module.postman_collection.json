@@ -1,0 +1,612 @@
+{
+  "info": {
+    "_postman_id": "admin-module-001",
+    "name": "CareLine360 - Admin Module",
+    "description": "Complete API documentation for Admin Module endpoints including user management, doctor verification, appointment oversight, emergency response, and system reporting.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login Admin",
+          "id": "admin-login-001",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@careline360.com\",\n  \"password\": \"AdminPassword@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Authenticate admin and get JWT token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Get All Users",
+          "id": "admin-users-get-all-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users?page=1&limit=10&search=&role=all",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "role",
+                  "value": "all"
+                }
+              ]
+            },
+            "description": "Retrieve all system users with pagination and filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "id": "admin-users-create-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"New Professional\",\n  \"email\": \"newprofessional@example.com\",\n  \"phone\": \"+94771234580\",\n  \"password\": \"SecurePassword123!\",\n  \"role\": \"doctor\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"]
+            },
+            "description": "Create new user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "id": "admin-users-update-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"phone\": \"+94771234599\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{userId}}"]
+            },
+            "description": "Update user information"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Status",
+          "id": "admin-users-status-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}/status",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{userId}}", "status"]
+            },
+            "description": "Change user account status (ACTIVE, PENDING, REJECTED, SUSPENDED)"
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle User Status",
+          "id": "admin-users-toggle-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}/toggle-status",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{userId}}", "toggle-status"]
+            },
+            "description": "Toggle user active/inactive status"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset User Password",
+          "id": "admin-users-reset-password-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"NewSecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}/reset-password",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{userId}}", "reset-password"]
+            },
+            "description": "Reset or set custom password for user"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "id": "admin-users-delete-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{userId}}"]
+            },
+            "description": "Permanently delete a user account"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Doctor Management",
+      "item": [
+        {
+          "name": "Get Pending Doctors",
+          "id": "admin-doctors-pending-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/doctors/pending",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "doctors", "pending"]
+            },
+            "description": "List doctors awaiting verification"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Appointment Management",
+      "item": [
+        {
+          "name": "Get All Appointments",
+          "id": "admin-appointments-get-all-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/appointments?status=&page=1&limit=10",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "appointments"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "View all system appointments"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Meeting Link",
+          "id": "admin-appointments-meeting-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"meetingDuration\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/appointments/{{appointmentId}}/meeting",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "admin",
+                "appointments",
+                "{{appointmentId}}",
+                "meeting"
+              ]
+            },
+            "description": "Generate video meeting link for appointment"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "System Management",
+      "item": [
+        {
+          "name": "Get System Statistics",
+          "id": "admin-stats-get-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/stats",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "stats"]
+            },
+            "description": "Retrieve system-wide statistics and metrics"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Report",
+          "id": "admin-reports-generate-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"appointments\",\n  \"fromDate\": \"2024-01-01T00:00:00.000Z\",\n  \"toDate\": \"2024-01-31T23:59:59.999Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/reports/generate",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "reports", "generate"]
+            },
+            "description": "Generate system reports (category: appointments, users, doctors, emergencies, revenue, system_health)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Emergency Management",
+      "item": [
+        {
+          "name": "Get All Emergencies",
+          "id": "admin-emergencies-get-all-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/emergencies?status=&severity=&page=1&limit=10",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "emergencies"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": ""
+                },
+                {
+                  "key": "severity",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "List all emergency cases"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Emergency Details",
+          "id": "admin-emergencies-details-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/emergencies/{{emergencyId}}",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "emergencies", "{{emergencyId}}"]
+            },
+            "description": "Get specific emergency case details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Emergency Status",
+          "id": "admin-emergencies-status-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"responding\",\n  \"notes\": \"Ambulance en route to patient location\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/emergencies/{{emergencyId}}/status",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "admin",
+                "emergencies",
+                "{{emergencyId}}",
+                "status"
+              ]
+            },
+            "description": "Update emergency case status"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Nearest Hospital for Emergency",
+          "id": "admin-emergencies-hospital-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/emergencies/{{emergencyId}}/nearest-hospital",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "admin",
+                "emergencies",
+                "{{emergencyId}}",
+                "nearest-hospital"
+              ]
+            },
+            "description": "Find nearest hospital for emergency"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,803 @@
+{
+	"info": {
+		"_postman_id": "b3e7d1a0-doctor-dash-4c3e-a8f0-careline360doc",
+		"name": "CareLine360 – Doctor Dashboard API",
+		"description": "# CareLine360 – Doctor Dashboard API Documentation\n\nComplete API documentation for the **Doctor Dashboard** module of CareLine360.\n\n## Authentication\nAll protected endpoints require a **Bearer JWT** token in the `Authorization` header.\n\n```\nAuthorization: Bearer {{doctorToken}}\n```\n\n### How to get a token\n1. Use the **Auth → Login (Doctor)** request.\n2. The `doctorToken` environment variable is auto-set by the post-response script.\n\n## Base URL\n```\n{{baseUrl}} → http://localhost:1111\n```\n\n## Modules Covered\n- **Authentication** – Login to obtain JWT\n- **Profile Management** – Create, Read, Update profile & avatar\n- **Dashboard & Analytics** – Stats overview & charts data\n- **Availability Management** – CRUD time slots\n- **Appointment Management** – List, update status, delete\n- **Meetings** – Video-call appointments\n- **Patient Management** – List patients, view details\n- **Medical Records** – Create, list, update records\n- **Prescriptions** – Generate PDF, save, list, download\n- **Ratings & Reviews** – View ratings from patients\n- **Chat** – Inbox, messages, mark as read, unread count\n- **Account** – Delete account\n- **Utility** – Trigger reminder, send test email",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:1111",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "01 – Authentication",
+			"description": "Login as a doctor to obtain a JWT access token. The token is automatically stored in `{{doctorToken}}`.",
+			"item": [
+				{
+					"name": "Login (Doctor)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json();",
+									"",
+									"pm.test('Status 200 – Login successful', () => pm.response.to.have.status(200));",
+									"",
+									"if (res.accessToken) {",
+									"    pm.environment.set('doctorToken', res.accessToken);",
+									"    console.log('✅ doctorToken saved');",
+									"}",
+									"if (res.refreshToken) {",
+									"    pm.environment.set('doctorRefreshToken', res.refreshToken);",
+									"}",
+									"if (res.user && res.user.id) {",
+									"    pm.environment.set('doctorUserId', res.user.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"{{doctorIdentifier}}\",\n  \"password\": \"{{doctorPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "## POST /api/auth/login\n\nAuthenticate a doctor and receive JWT tokens.\n\n### Request Body\n| Field | Type | Required | Description |\n|---|---|---|---|\n| `identifier` | string | ✅ | Email or phone number |\n| `password` | string | ✅ | Account password |\n\n### Response (200)\n```json\n{\n  \"accessToken\": \"eyJhbGciOi...\",\n  \"refreshToken\": \"eyJhbGciOi...\",\n  \"user\": {\n    \"id\": \"664a...\",\n    \"email\": \"doctor@example.com\",\n    \"role\": \"doctor\",\n    \"status\": \"ACTIVE\",\n    \"isVerified\": true\n  }\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 400 | Validation error |\n| 401 | Invalid credentials |\n| 403 | Account not active |"
+					}
+				},
+				{
+					"name": "Get Current User (Me)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "me"]
+						},
+						"description": "## GET /api/auth/me\n\nGet the currently authenticated user's basic info.\n\n### Headers\n| Key | Value |\n|---|---|\n| Authorization | Bearer {{doctorToken}} |\n\n### Response (200)\n```json\n{\n  \"user\": {\n    \"id\": \"664a...\",\n    \"email\": \"doctor@example.com\",\n    \"phone\": null,\n    \"role\": \"doctor\",\n    \"status\": \"ACTIVE\",\n    \"isVerified\": true\n  }\n}\n```"
+					}
+				}
+			]
+		},
+		{
+			"name": "02 – Profile Management",
+			"description": "Create, view, update the doctor profile, and update avatar.",
+			"item": [
+				{
+					"name": "Create Doctor Profile",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fullName\": \"Dr. John Smith\",\n  \"specialization\": \"Cardiology\",\n  \"qualifications\": [\"MBBS\", \"MD Cardiology\"],\n  \"experience\": 10,\n  \"bio\": \"Experienced cardiologist specializing in interventional procedures.\",\n  \"licenseNumber\": \"SLMC-12345\",\n  \"consultationFee\": 3500,\n  \"phone\": \"+94771234567\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "profile"]
+						},
+						"description": "## POST /api/doctor/profile\n\nCreate a new doctor profile (one-time setup after registration).\n\n### Authorization\n🔒 Doctor only (Bearer token)\n\n### Validation\n- `fullName` – required, non-empty\n- `specialization` – required, non-empty\n\n### Request Body\n| Field | Type | Required | Description |\n|---|---|---|---|\n| `fullName` | string | ✅ | Doctor's full name |\n| `specialization` | string | ✅ | Medical specialization |\n| `qualifications` | string[] | ❌ | List of qualifications |\n| `experience` | number | ❌ | Years of experience |\n| `bio` | string | ❌ | Short biography |\n| `licenseNumber` | string | ❌ | Medical license number |\n| `consultationFee` | number | ❌ | Fee per consultation |\n| `phone` | string | ❌ | Contact phone number |\n\n### Response (201)\n```json\n{\n  \"message\": \"Doctor profile created\",\n  \"doctor\": { ... }\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 400 | Validation failed |\n| 403 | Not a doctor account / Account not approved |\n| 409 | Profile already exists |"
+					}
+				},
+				{
+					"name": "Get Doctor Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "profile"]
+						},
+						"description": "## GET /api/doctor/profile\n\nRetrieve the logged-in doctor's profile.\n\n### Authorization\n🔒 Doctor only\n\n### Response (200)\n```json\n{\n  \"doctor\": {\n    \"_id\": \"...\",\n    \"userId\": \"...\",\n    \"doctorId\": \"DOC-000001\",\n    \"fullName\": \"Dr. John Smith\",\n    \"specialization\": \"Cardiology\",\n    \"qualifications\": [\"MBBS\", \"MD\"],\n    \"experience\": 10,\n    \"bio\": \"...\",\n    \"licenseNumber\": \"SLMC-12345\",\n    \"consultationFee\": 3500,\n    \"phone\": \"+94771234567\",\n    \"avatarUrl\": \"\",\n    \"rating\": 0,\n    \"totalRatings\": 0,\n    \"availabilitySlots\": [],\n    \"isDeleted\": false,\n    \"createdAt\": \"...\",\n    \"updatedAt\": \"...\"\n  }\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 404 | Doctor profile not found |"
+					}
+				},
+				{
+					"name": "Update Doctor Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fullName\": \"Dr. John A. Smith\",\n  \"specialization\": \"Interventional Cardiology\",\n  \"qualifications\": [\"MBBS\", \"MD Cardiology\", \"FRCP\"],\n  \"experience\": 12,\n  \"bio\": \"Senior interventional cardiologist with 12+ years of experience.\",\n  \"consultationFee\": 4000,\n  \"phone\": \"+94771234567\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "profile"]
+						},
+						"description": "## PUT /api/doctor/profile\n\nUpdate the doctor profile. Only allowed fields are updated (whitelist).\n\n### Authorization\n🔒 Doctor only\n\n### Allowed Fields\n`fullName`, `specialization`, `qualifications`, `experience`, `bio`, `licenseNumber`, `consultationFee`, `phone`\n\n### Request Body\nSend only the fields you want to update.\n\n### Response (200)\n```json\n{\n  \"message\": \"Profile updated\",\n  \"doctor\": { ... }\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 404 | Doctor not found |"
+					}
+				},
+				{
+					"name": "Update Avatar (Base64)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"image\": \"data:image/jpeg;base64,/9j/4AAQSkZJRg...(base64 string)...\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/profile/avatar",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "profile", "avatar"]
+						},
+						"description": "## PUT /api/doctor/profile/avatar\n\nUpload/update profile picture using a base64-encoded image string. The image is uploaded to Cloudinary (max 2 MB, auto-cropped to 512×512).\n\n### Authorization\n🔒 Doctor only\n\n### Validation\n- `image` – required, non-empty base64 data URI\n\n### Request Body\n| Field | Type | Required | Description |\n|---|---|---|---|\n| `image` | string | ✅ | Base64-encoded data URI (e.g. `data:image/jpeg;base64,...`) |\n\n### Response (200)\n```json\n{\n  \"message\": \"Avatar updated\",\n  \"avatarUrl\": \"https://res.cloudinary.com/...\"\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 400 | No image data / Image too large / Invalid format |\n| 404 | Doctor not found |"
+					}
+				}
+			]
+		},
+		{
+			"name": "03 – Dashboard & Analytics",
+			"description": "Dashboard overview stats and detailed analytics data for charts.",
+			"item": [
+				{
+					"name": "Get Dashboard Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/dashboard",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "dashboard"]
+						},
+						"description": "## GET /api/doctor/dashboard\n\nGet high-level dashboard statistics for the logged-in doctor.\n\n### Authorization\n🔒 Doctor only\n\n### Response (200)\n```json\n{\n  \"doctor\": {\n    \"id\": \"...\",\n    \"doctorId\": \"DOC-000001\",\n    \"fullName\": \"Dr. John Smith\",\n    \"specialization\": \"Cardiology\",\n    \"avatarUrl\": \"https://...\",\n    \"rating\": 4.5,\n    \"consultationFee\": 3500\n  },\n  \"stats\": {\n    \"totalAppointments\": 120,\n    \"pendingAppointments\": 5,\n    \"completedAppointments\": 100,\n    \"todayAppointments\": 3,\n    \"totalPatients\": 45,\n    \"totalRecords\": 95\n  }\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 404 | Doctor profile not found |"
+					}
+				},
+				{
+					"name": "Get Analytics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/analytics",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "analytics"]
+						},
+						"description": "## GET /api/doctor/analytics\n\nDetailed analytics data for dashboard charts (monthly trends, status breakdown, completion rate).\n\n### Authorization\n🔒 Doctor only\n\n### Response (200)\n```json\n{\n  \"stats\": {\n    \"totalAppointments\": 120,\n    \"pendingAppointments\": 5,\n    \"completedAppointments\": 100,\n    \"cancelledAppointments\": 10,\n    \"confirmedAppointments\": 5,\n    \"totalPatients\": 45,\n    \"completionRate\": 83\n  },\n  \"doctor\": {\n    \"rating\": 4.5,\n    \"totalRatings\": 30\n  },\n  \"thisMonthAppointments\": 15,\n  \"lastMonthAppointments\": 20,\n  \"appointmentsByStatus\": [\n    { \"_id\": \"completed\", \"count\": 100 },\n    { \"_id\": \"pending\", \"count\": 5 },\n    { \"_id\": \"confirmed\", \"count\": 5 },\n    { \"_id\": \"cancelled\", \"count\": 10 }\n  ],\n  \"monthlyTrend\": [\n    { \"month\": \"Nov\", \"count\": 18 },\n    { \"month\": \"Dec\", \"count\": 22 },\n    { \"month\": \"Jan\", \"count\": 15 },\n    { \"month\": \"Feb\", \"count\": 20 },\n    { \"month\": \"Mar\", \"count\": 25 },\n    { \"month\": \"Apr\", \"count\": 15 }\n  ]\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 404 | Doctor not found |"
+					}
+				}
+			]
+		},
+		{
+			"name": "04 – Availability Management",
+			"description": "Manage doctor availability time slots.",
+			"item": [
+				{
+					"name": "Get Availability Slots",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/availability",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "availability"]
+						},
+						"description": "## GET /api/doctor/availability\n\nRetrieve all availability slots for the logged-in doctor.\n\n### Authorization\n🔒 Doctor only\n\n### Response (200)\n```json\n{\n  \"slots\": [\n    {\n      \"_id\": \"664a...\",\n      \"date\": \"2026-04-15\",\n      \"startTime\": \"09:00\",\n      \"endTime\": \"09:30\",\n      \"isBooked\": false,\n      \"appointmentId\": null\n    }\n  ]\n}\n```"
+					}
+				},
+				{
+					"name": "Add Availability Slots",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json();",
+									"pm.test('Status 201 – Slots added', () => pm.response.to.have.status(201));",
+									"",
+									"if (res.slots && res.slots.length > 0) {",
+									"    const lastSlot = res.slots[res.slots.length - 1];",
+									"    pm.environment.set('slotId', lastSlot._id);",
+									"    console.log('✅ slotId saved:', lastSlot._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"slots\": [\n    {\n      \"date\": \"2026-04-15\",\n      \"startTime\": \"09:00\",\n      \"endTime\": \"09:30\"\n    },\n    {\n      \"date\": \"2026-04-15\",\n      \"startTime\": \"09:30\",\n      \"endTime\": \"10:00\"\n    },\n    {\n      \"date\": \"2026-04-15\",\n      \"startTime\": \"10:00\",\n      \"endTime\": \"10:30\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/availability",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "availability"]
+						},
+						"description": "## POST /api/doctor/availability\n\nAdd one or more availability time slots.\n\n### Authorization\n🔒 Doctor only\n\n### Validation\n- `slots` – required, must be a non-empty array\n\n### Request Body\n| Field | Type | Required | Description |\n|---|---|---|---|\n| `slots` | array | ✅ | Array of slot objects |\n| `slots[].date` | string | ✅ | Date in YYYY-MM-DD format |\n| `slots[].startTime` | string | ✅ | Start time (HH:mm) |\n| `slots[].endTime` | string | ✅ | End time (HH:mm) |\n\n### Response (201)\n```json\n{\n  \"message\": \"Slots added\",\n  \"slots\": [ ... ]\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 400 | slots must be a non-empty array |\n| 404 | Doctor not found |"
+					}
+				},
+				{
+					"name": "Update Availability Slot",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"startTime\": \"10:00\",\n  \"endTime\": \"10:30\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/availability/{{slotId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "availability", "{{slotId}}"]
+						},
+						"description": "## PUT /api/doctor/availability/:slotId\n\nUpdate the time range of an existing (unbooked) slot.\n\n### Authorization\n🔒 Doctor only\n\n### Path Parameters\n| Parameter | Description |\n|---|---|\n| `slotId` | The `_id` of the availability slot subdocument |\n\n### Validation\n- `startTime` – required, non-empty\n- `endTime` – required, non-empty\n- `endTime` must be after `startTime`\n\n### Request Body\n| Field | Type | Required | Description |\n|---|---|---|---|\n| `startTime` | string | ✅ | New start time (HH:mm) |\n| `endTime` | string | ✅ | New end time (HH:mm) |\n\n### Response (200)\n```json\n{\n  \"message\": \"Slot updated\",\n  \"slots\": [ ... ]\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 400 | Cannot edit a booked slot / End time must be after start time |\n| 404 | Doctor not found / Slot not found |"
+					}
+				},
+				{
+					"name": "Delete Availability Slot",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/availability/{{slotId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "availability", "{{slotId}}"]
+						},
+						"description": "## DELETE /api/doctor/availability/:slotId\n\nDelete an unbooked availability slot.\n\n### Authorization\n🔒 Doctor only\n\n### Path Parameters\n| Parameter | Description |\n|---|---|\n| `slotId` | The `_id` of the availability slot |\n\n### Response (200)\n```json\n{\n  \"message\": \"Slot deleted\",\n  \"slots\": [ ... ]\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 400 | Cannot delete a booked slot |\n| 404 | Doctor not found / Slot not found |"
+					}
+				}
+			]
+		},
+		{
+			"name": "05 – Appointment Management",
+			"description": "List, filter, update status, and delete appointments.",
+			"item": [
+				{
+					"name": "Get Appointments",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json();",
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"if (res.appointments && res.appointments.length > 0) {",
+									"    pm.environment.set('appointmentId', res.appointments[0]._id);",
+									"    console.log('✅ appointmentId saved:', res.appointments[0]._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/appointments?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "appointments"],
+							"query": [
+								{ "key": "page", "value": "1", "description": "Page number (default: 1)" },
+								{ "key": "limit", "value": "10", "description": "Items per page (default: 10)" },
+								{ "key": "status", "value": "pending", "description": "Filter: pending | confirmed | completed | cancelled", "disabled": true },
+								{ "key": "date", "value": "2026-04-15", "description": "Filter by single date (YYYY-MM-DD)", "disabled": true },
+								{ "key": "dateFrom", "value": "2026-04-01", "description": "Filter from date (inclusive)", "disabled": true },
+								{ "key": "dateTo", "value": "2026-04-30", "description": "Filter to date (inclusive)", "disabled": true },
+								{ "key": "search", "value": "John", "description": "Search by patient name", "disabled": true }
+							]
+						},
+						"description": "## GET /api/doctor/appointments\n\nGet paginated list of the doctor's appointments with optional filters.\n\n### Authorization\n🔒 Doctor only\n\n### Query Parameters\n| Parameter | Type | Default | Description |\n|---|---|---|---|\n| `page` | number | 1 | Page number |\n| `limit` | number | 10 | Results per page |\n| `status` | string | – | Filter by status: `pending`, `confirmed`, `completed`, `cancelled` |\n| `date` | string | – | Single date filter (YYYY-MM-DD) |\n| `dateFrom` | string | – | Range start (inclusive) |\n| `dateTo` | string | – | Range end (inclusive) |\n| `search` | string | – | Search by patient name |\n\n> **Note:** `dateFrom`/`dateTo` takes priority over `date` if both are provided.\n\n### Response (200)\n```json\n{\n  \"appointments\": [\n    {\n      \"_id\": \"...\",\n      \"patient\": { \"_id\": \"...\", \"email\": \"patient@example.com\", \"phone\": \"...\" },\n      \"patientProfile\": { \"fullName\": \"Jane Doe\", \"patientId\": \"PAT-000001\", \"avatarUrl\": \"...\" },\n      \"doctor\": \"...\",\n      \"date\": \"2026-04-15T00:00:00.000Z\",\n      \"time\": \"09:00\",\n      \"consultationType\": \"in-person\",\n      \"status\": \"pending\",\n      \"symptoms\": \"Chest pain\",\n      \"notes\": \"\"\n    }\n  ],\n  \"pagination\": {\n    \"total\": 50,\n    \"page\": 1,\n    \"limit\": 10,\n    \"pages\": 5\n  }\n}\n```"
+					}
+				},
+				{
+					"name": "Update Appointment Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"confirmed\",\n  \"notes\": \"Patient confirmed for appointment. Please arrive 10 minutes early.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/appointments/{{appointmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "appointments", "{{appointmentId}}"]
+						},
+						"description": "## PATCH /api/doctor/appointments/:appointmentId\n\nUpdate the status (and optionally notes) of an appointment.\n\n### Authorization\n🔒 Doctor only\n\n### Path Parameters\n| Parameter | Description |\n|---|---|\n| `appointmentId` | MongoDB ObjectId of the appointment |\n\n### Request Body\n| Field | Type | Required | Description |\n|---|---|---|---|\n| `status` | string | ✅ | New status: `confirmed`, `completed`, or `cancelled` |\n| `notes` | string | ❌ | Optional doctor notes |\n\n### Response (200)\n```json\n{\n  \"message\": \"Appointment status updated\",\n  \"appointment\": { ... }\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 400 | Invalid status |\n| 404 | Appointment not found |"
+					}
+				},
+				{
+					"name": "Delete Appointment",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/appointments/{{appointmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "appointments", "{{appointmentId}}"]
+						},
+						"description": "## DELETE /api/doctor/appointments/:appointmentId\n\nPermanently delete an appointment.\n\n### Authorization\n🔒 Doctor only\n\n### Path Parameters\n| Parameter | Description |\n|---|---|\n| `appointmentId` | MongoDB ObjectId of the appointment |\n\n### Response (200)\n```json\n{\n  \"message\": \"Appointment deleted successfully\"\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 404 | Appointment not found |"
+					}
+				}
+			]
+		},
+		{
+			"name": "06 – Meetings (Video Call)",
+			"description": "Retrieve video-call appointment data.",
+			"item": [
+				{
+					"name": "Get Meetings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/meetings",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "meetings"],
+							"query": [
+								{ "key": "status", "value": "confirmed", "description": "Optional filter by status", "disabled": true }
+							]
+						},
+						"description": "## GET /api/doctor/meetings\n\nGet all video-call type appointments for the doctor, enriched with patient profile data.\n\n### Authorization\n🔒 Doctor only\n\n### Query Parameters\n| Parameter | Type | Required | Description |\n|---|---|---|---|\n| `status` | string | ❌ | Filter by status (e.g. `confirmed`, `pending`) |\n\n### Response (200)\n```json\n{\n  \"meetings\": [\n    {\n      \"_id\": \"...\",\n      \"patient\": { \"_id\": \"...\", \"email\": \"...\", \"phone\": \"...\", \"fullName\": \"...\" },\n      \"patientProfile\": {\n        \"userId\": \"...\",\n        \"fullName\": \"Jane Doe\",\n        \"patientId\": \"PAT-000001\",\n        \"avatarUrl\": \"...\"\n      },\n      \"date\": \"2026-04-15T00:00:00.000Z\",\n      \"time\": \"14:00\",\n      \"consultationType\": \"video\",\n      \"status\": \"confirmed\",\n      \"meetingUrl\": \"...\"\n    }\n  ]\n}\n```"
+					}
+				}
+			]
+		},
+		{
+			"name": "07 – Patient Management",
+			"description": "View the doctor's patients list and detailed patient info.",
+			"item": [
+				{
+					"name": "Get My Patients",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json();",
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"if (res.patients && res.patients.length > 0) {",
+									"    const p = res.patients[0];",
+									"    if (p._id) {",
+									"        pm.environment.set('patientDbId', p._id);",
+									"        console.log('✅ patientDbId saved:', p._id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/patients?page=1&limit=6",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "patients"],
+							"query": [
+								{ "key": "page", "value": "1", "description": "Page number (default: 1)" },
+								{ "key": "limit", "value": "6", "description": "Items per page (default: 6)" },
+								{ "key": "search", "value": "", "description": "Search by name, patientId, or email", "disabled": true }
+							]
+						},
+						"description": "## GET /api/doctor/patients\n\nGet a paginated list of patients who have had appointments with this doctor.\n\n### Authorization\n🔒 Doctor only\n\n### Query Parameters\n| Parameter | Type | Default | Description |\n|---|---|---|---|\n| `page` | number | 1 | Page number |\n| `limit` | number | 6 | Results per page |\n| `search` | string | – | Search by name, patientId, or email |\n\n### Response (200)\n```json\n{\n  \"patients\": [\n    {\n      \"_id\": \"...(Patient doc _id)\",\n      \"userId\": { \"_id\": \"...\", \"email\": \"patient@example.com\", \"phone\": \"...\" },\n      \"fullName\": \"Jane Doe\",\n      \"patientId\": \"PAT-000001\",\n      \"avatarUrl\": \"https://...\",\n      \"appointmentCount\": 5,\n      \"lastVisit\": \"2026-04-10T00:00:00.000Z\",\n      \"lastAppointmentId\": \"...\"\n    }\n  ],\n  \"pagination\": {\n    \"total\": 15,\n    \"page\": 1,\n    \"limit\": 6,\n    \"pages\": 3\n  }\n}\n```"
+					}
+				},
+				{
+					"name": "Get Patient Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/patients/{{patientDbId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "patients", "{{patientDbId}}"]
+						},
+						"description": "## GET /api/doctor/patients/:patientId\n\nGet detailed information about a specific patient, including their appointment history and medical records with this doctor.\n\n### Authorization\n🔒 Doctor only (must have an existing appointment with this patient)\n\n### Path Parameters\n| Parameter | Description |\n|---|---|\n| `patientId` | The Patient document `_id` (not `patientId` string) |\n\n### Response (200)\n```json\n{\n  \"patient\": {\n    \"_id\": \"...\",\n    \"userId\": { \"_id\": \"...\", \"email\": \"...\", \"phone\": \"...\", \"isVerified\": true },\n    \"fullName\": \"Jane Doe\",\n    \"patientId\": \"PAT-000001\",\n    \"avatarUrl\": \"...\"\n  },\n  \"appointments\": [ ... ],\n  \"records\": [ ... ]\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 403 | No appointment with this patient |\n| 404 | Patient not found |"
+					}
+				}
+			]
+		},
+		{
+			"name": "08 – Medical Records",
+			"description": "Create, read, and update medical records for patients.",
+			"item": [
+				{
+					"name": "Create Medical Record",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const res = pm.response.json();",
+									"pm.test('Status 201', () => pm.response.to.have.status(201));",
+									"",
+									"if (res.record && res.record._id) {",
+									"    pm.environment.set('recordId', res.record._id);",
+									"    console.log('✅ recordId saved:', res.record._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"patientId\": \"{{patientDbId}}\",\n  \"appointmentId\": \"{{appointmentId}}\",\n  \"chiefComplaint\": \"Persistent chest pain for 3 days\",\n  \"diagnosis\": \"Mild angina pectoris\",\n  \"notes\": \"Recommend stress test and follow-up in 2 weeks\",\n  \"vitals\": {\n    \"bloodPressure\": \"130/85\",\n    \"heartRate\": 78,\n    \"temperature\": 37.1,\n    \"oxygenSaturation\": 98,\n    \"weight\": 72,\n    \"height\": 175\n  },\n  \"prescriptions\": [\n    {\n      \"medicine\": \"Aspirin 100mg\",\n      \"dosage\": \"1 tablet\",\n      \"frequency\": \"Once daily\",\n      \"duration\": \"30 days\",\n      \"instructions\": \"Take after meals\"\n    },\n    {\n      \"medicine\": \"Atorvastatin 20mg\",\n      \"dosage\": \"1 tablet\",\n      \"frequency\": \"Once daily at night\",\n      \"duration\": \"30 days\",\n      \"instructions\": \"Take before bed\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/records",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "records"]
+						},
+						"description": "## POST /api/doctor/records\n\nCreate a new medical record for a patient. If `appointmentId` is provided, the appointment status is automatically set to `completed`.\n\n### Authorization\n🔒 Doctor only\n\n### Request Body\n| Field | Type | Required | Description |\n|---|---|---|---|\n| `patientId` | ObjectId | ✅ | Patient document `_id` |\n| `appointmentId` | ObjectId | ❌ | Linked appointment (auto-completes it) |\n| `chiefComplaint` | string | ❌ | Main complaint |\n| `diagnosis` | string | ❌ | Diagnosis |\n| `notes` | string | ❌ | Clinical notes |\n| `vitals` | object | ❌ | Vital signs (see below) |\n| `prescriptions` | array | ❌ | Embedded prescriptions |\n\n#### Vitals Object\n| Field | Type | Description |\n|---|---|---|\n| `bloodPressure` | string | e.g. \"120/80\" |\n| `heartRate` | number | BPM |\n| `temperature` | number | Celsius |\n| `oxygenSaturation` | number | SpO2 % |\n| `weight` | number | kg |\n| `height` | number | cm |\n\n#### Prescription Object (embedded)\n| Field | Type | Description |\n|---|---|---|\n| `medicine` | string | Medicine name & dose |\n| `dosage` | string | Dosage info |\n| `frequency` | string | How often |\n| `duration` | string | How long |\n| `instructions` | string | Special instructions |\n\n### Response (201)\n```json\n{\n  \"message\": \"Medical record created\",\n  \"record\": { ... }\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 404 | Doctor / Patient not found |"
+					}
+				},
+				{
+					"name": "Get Records by Patient",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/records/{{patientDbId}}?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "records", "{{patientDbId}}"],
+							"query": [
+								{ "key": "page", "value": "1", "description": "Page number" },
+								{ "key": "limit", "value": "10", "description": "Items per page" }
+							]
+						},
+						"description": "## GET /api/doctor/records/:patientId\n\nGet paginated medical records for a specific patient (only records created by this doctor).\n\n### Authorization\n🔒 Doctor only\n\n### Path Parameters\n| Parameter | Description |\n|---|---|\n| `patientId` | Patient document `_id` |\n\n### Query Parameters\n| Parameter | Type | Default | Description |\n|---|---|---|---|\n| `page` | number | 1 | Page number |\n| `limit` | number | 10 | Results per page |\n\n### Response (200)\n```json\n{\n  \"records\": [ ... ],\n  \"pagination\": {\n    \"total\": 5,\n    \"page\": 1,\n    \"limit\": 10,\n    \"pages\": 1\n  }\n}\n```"
+					}
+				},
+				{
+					"name": "Update Medical Record",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"diagnosis\": \"Updated: Stable angina pectoris – improving\",\n  \"notes\": \"Stress test results normal. Continue current medication.\",\n  \"vitals\": {\n    \"bloodPressure\": \"125/80\",\n    \"heartRate\": 72\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/records/{{recordId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "records", "{{recordId}}"]
+						},
+						"description": "## PUT /api/doctor/records/:recordId\n\nUpdate an existing medical record. Only allowed fields are updated.\n\n### Authorization\n🔒 Doctor only (must be the record creator)\n\n### Path Parameters\n| Parameter | Description |\n|---|---|\n| `recordId` | Medical record `_id` |\n\n### Allowed Fields\n`chiefComplaint`, `diagnosis`, `notes`, `vitals`, `prescriptions`\n\n### Response (200)\n```json\n{\n  \"message\": \"Record updated\",\n  \"record\": { ... }\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 404 | Doctor not found / Record not found |"
+					}
+				}
+			]
+		},
+		{
+			"name": "09 – Prescriptions",
+			"description": "Generate PDF prescriptions, save, list, and download.",
+			"item": [
+				{
+					"name": "Generate Prescription PDF",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"patientId\": \"{{patientDbId}}\",\n  \"appointmentId\": \"{{appointmentId}}\",\n  \"medicalRecordId\": \"{{recordId}}\",\n  \"medicines\": [\n    {\n      \"medicine\": \"Aspirin 100mg\",\n      \"dosage\": \"1 tablet\",\n      \"frequency\": \"Once daily\",\n      \"duration\": \"30 days\",\n      \"instructions\": \"Take after meals\"\n    },\n    {\n      \"medicine\": \"Atorvastatin 20mg\",\n      \"dosage\": \"1 tablet\",\n      \"frequency\": \"Once daily\",\n      \"duration\": \"30 days\",\n      \"instructions\": \"Take before bed\"\n    }\n  ],\n  \"notes\": \"Follow-up in 2 weeks. Avoid fatty foods.\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/prescriptions/generate",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "prescriptions", "generate"]
+						},
+						"description": "## POST /api/doctor/prescriptions/generate\n\nGenerate a PDF prescription, upload to Cloudinary, save the record, and stream the PDF as a download.\n\n### Authorization\n🔒 Doctor only\n\n### Request Body\n| Field | Type | Required | Description |\n|---|---|---|---|\n| `patientId` | ObjectId | ✅ | Patient document `_id` |\n| `medicines` | array | ✅ | At least one medicine |\n| `appointmentId` | ObjectId | ❌ | Linked appointment |\n| `medicalRecordId` | ObjectId | ❌ | Linked medical record |\n| `notes` | string | ❌ | Additional notes |\n\n### Response (200)\n- **Content-Type:** `application/pdf`\n- **Content-Disposition:** `attachment; filename=\"prescription-PatientName.pdf\"`\n- **Custom Headers:**\n  - `X-File-Url` – Cloudinary URL of the uploaded PDF\n  - `X-Prescription-Id` – MongoDB `_id` of the saved prescription\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 400 | patientId and medicines required |\n| 404 | Doctor / Patient not found |\n| 500 | PDF generation failed |"
+					}
+				},
+				{
+					"name": "Save Prescription",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"patientId\": \"{{patientDbId}}\",\n  \"medicalRecordId\": \"{{recordId}}\",\n  \"medicines\": [\n    {\n      \"medicine\": \"Paracetamol 500mg\",\n      \"dosage\": \"1-2 tablets\",\n      \"frequency\": \"Every 6 hours as needed\",\n      \"duration\": \"5 days\",\n      \"instructions\": \"Do not exceed 4g/day\"\n    }\n  ],\n  \"notes\": \"For fever and body aches\",\n  \"fileUrl\": \"\",\n  \"publicId\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/prescriptions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "prescriptions"]
+						},
+						"description": "## POST /api/doctor/prescriptions\n\nSave a prescription record (without generating a PDF).\n\n### Authorization\n🔒 Doctor only\n\n### Request Body\n| Field | Type | Required | Description |\n|---|---|---|---|\n| `patientId` | ObjectId | ✅ | Patient document `_id` |\n| `medicalRecordId` | ObjectId | ❌ | Linked medical record |\n| `medicines` | array | ❌ | Array of medicine objects |\n| `notes` | string | ❌ | Additional notes |\n| `fileUrl` | string | ❌ | Pre-uploaded PDF URL |\n| `publicId` | string | ❌ | Cloudinary public ID |\n\n### Response (201)\n```json\n{\n  \"message\": \"Prescription saved\",\n  \"prescription\": { ... }\n}\n```"
+					}
+				},
+				{
+					"name": "Get Prescriptions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/prescriptions?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "prescriptions"],
+							"query": [
+								{ "key": "page", "value": "1", "description": "Page number" },
+								{ "key": "limit", "value": "10", "description": "Items per page" },
+								{ "key": "patientId", "value": "", "description": "Filter by patient _id", "disabled": true }
+							]
+						},
+						"description": "## GET /api/doctor/prescriptions\n\nGet a paginated list of prescriptions created by this doctor.\n\n### Authorization\n🔒 Doctor only\n\n### Query Parameters\n| Parameter | Type | Default | Description |\n|---|---|---|---|\n| `page` | number | 1 | Page number |\n| `limit` | number | 10 | Results per page |\n| `patientId` | ObjectId | – | Filter by patient `_id` |\n\n### Response (200)\n```json\n{\n  \"prescriptions\": [\n    {\n      \"_id\": \"...\",\n      \"doctorId\": \"...\",\n      \"patientId\": { \"fullName\": \"Jane Doe\", \"patientId\": \"PAT-000001\", \"avatarUrl\": \"...\" },\n      \"medicines\": [ ... ],\n      \"fileUrl\": \"https://res.cloudinary.com/...\",\n      \"notes\": \"...\",\n      \"sentToPatient\": true,\n      \"createdAt\": \"...\"\n    }\n  ],\n  \"pagination\": { \"total\": 10, \"page\": 1, \"limit\": 10, \"pages\": 1 }\n}\n```"
+					}
+				},
+				{
+					"name": "Download Prescription PDF",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/prescriptions/download?url=https://res.cloudinary.com/demo/raw/upload/v1/prescription.pdf&filename=prescription_JaneDoe.pdf",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "prescriptions", "download"],
+							"query": [
+								{ "key": "url", "value": "https://res.cloudinary.com/demo/raw/upload/v1/prescription.pdf", "description": "Cloudinary PDF URL (must be *.cloudinary.com)" },
+								{ "key": "filename", "value": "prescription_JaneDoe.pdf", "description": "Download filename (optional, default: prescription.pdf)" }
+							]
+						},
+						"description": "## GET /api/doctor/prescriptions/download\n\nProxy-download a prescription PDF from Cloudinary. Avoids CORS issues and forces `Content-Disposition: attachment`.\n\n### Authorization\n🔒 Doctor only\n\n### Query Parameters\n| Parameter | Type | Required | Description |\n|---|---|---|---|\n| `url` | string | ✅ | Cloudinary PDF URL |\n| `filename` | string | ❌ | Download filename (default: `prescription.pdf`) |\n\n### Security\n- Only `*.cloudinary.com` URLs are allowed.\n- Follows up to 5 redirects.\n\n### Response (200)\n- **Content-Type:** `application/pdf`\n- **Content-Disposition:** `attachment; filename=\"prescription_JaneDoe.pdf\"`\n- Binary PDF stream\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 400 | URL required / Invalid URL |\n| 403 | URL not allowed (non-Cloudinary) |\n| 502 | Upstream error / Too many redirects |"
+					}
+				}
+			]
+		},
+		{
+			"name": "10 – Ratings & Reviews",
+			"description": "View patient ratings received by the doctor.",
+			"item": [
+				{
+					"name": "Get My Ratings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/ratings?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "ratings"],
+							"query": [
+								{ "key": "page", "value": "1", "description": "Page number" },
+								{ "key": "limit", "value": "10", "description": "Items per page" }
+							]
+						},
+						"description": "## GET /api/doctor/ratings\n\nGet paginated list of ratings and reviews received from patients.\n\n### Authorization\n🔒 Doctor only\n\n### Query Parameters\n| Parameter | Type | Default | Description |\n|---|---|---|---|\n| `page` | number | 1 | Page number |\n| `limit` | number | 10 | Results per page |\n\n### Response (200)\n```json\n{\n  \"averageRating\": 4.5,\n  \"totalRatings\": 25,\n  \"ratings\": [\n    {\n      \"_id\": \"...\",\n      \"doctorId\": \"...\",\n      \"patientId\": { \"fullName\": \"Jane Doe\", \"avatarUrl\": \"...\" },\n      \"appointmentId\": \"...\",\n      \"rating\": 5,\n      \"review\": \"Excellent doctor, very thorough!\",\n      \"createdAt\": \"...\"\n    }\n  ],\n  \"pagination\": { \"total\": 25, \"page\": 1, \"limit\": 10, \"pages\": 3 }\n}\n```"
+					}
+				}
+			]
+		},
+		{
+			"name": "11 – Chat",
+			"description": "Chat functionality used by doctors to communicate with patients.",
+			"item": [
+				{
+					"name": "Get Chat Inbox",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/chat/inbox",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "chat", "inbox"]
+						},
+						"description": "## GET /api/chat/inbox\n\nGet the chat inbox – list of appointments with active chats, enriched with last message and unread count.\n\n### Authorization\n🔒 Doctor or Patient\n\n### Response (200)\n```json\n{\n  \"chats\": [\n    {\n      \"_id\": \"...(appointmentId)\",\n      \"patient\": { \"_id\": \"...\", \"email\": \"...\", \"phone\": \"...\" },\n      \"doctor\": { \"_id\": \"...\", \"email\": \"...\", \"phone\": \"...\" },\n      \"date\": \"...\",\n      \"status\": \"confirmed\",\n      \"lastMessage\": {\n        \"_id\": \"...\",\n        \"senderId\": \"...\",\n        \"senderRole\": \"patient\",\n        \"content\": \"Hello doctor!\",\n        \"isRead\": false,\n        \"createdAt\": \"...\"\n      },\n      \"unread\": 3\n    }\n  ]\n}\n```"
+					}
+				},
+				{
+					"name": "Get Chat Messages",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/chat/{{appointmentId}}?page=1&limit=100",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "chat", "{{appointmentId}}"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "100" }
+							]
+						},
+						"description": "## GET /api/chat/:appointmentId\n\nFetch paginated message history for a specific appointment chat. Also marks received messages as read.\n\n### Authorization\n🔒 Doctor or Patient (must be part of the appointment)\n\n### Path Parameters\n| Parameter | Description |\n|---|---|\n| `appointmentId` | The appointment `_id` |\n\n### Query Parameters\n| Parameter | Type | Default | Description |\n|---|---|---|---|\n| `page` | number | 1 | Page number |\n| `limit` | number | 100 | Messages per page |\n\n### Response (200)\n```json\n{\n  \"messages\": [\n    {\n      \"_id\": \"...\",\n      \"appointmentId\": \"...\",\n      \"senderId\": \"...\",\n      \"senderRole\": \"doctor\",\n      \"content\": \"Hi! How are you feeling?\",\n      \"isRead\": true,\n      \"createdAt\": \"...\"\n    }\n  ],\n  \"pagination\": { \"total\": 15, \"page\": 1, \"limit\": 100, \"pages\": 1 }\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 403 | Access denied |\n| 404 | Appointment not found |"
+					}
+				},
+				{
+					"name": "Mark Chat as Read",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/chat/{{appointmentId}}/read",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "chat", "{{appointmentId}}", "read"]
+						},
+						"description": "## PATCH /api/chat/:appointmentId/read\n\nMark all messages in an appointment chat as read by the current user.\n\n### Authorization\n🔒 Doctor or Patient\n\n### Path Parameters\n| Parameter | Description |\n|---|---|\n| `appointmentId` | The appointment `_id` |\n\n### Response (200)\n```json\n{\n  \"message\": \"Messages marked as read\"\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 403 | Access denied |\n| 404 | Appointment not found |"
+					}
+				},
+				{
+					"name": "Get Unread Count",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/chat/unread/count",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "chat", "unread", "count"]
+						},
+						"description": "## GET /api/chat/unread/count\n\nGet total unread message count across all appointment chats for the current user.\n\n### Authorization\n🔒 Doctor or Patient\n\n### Response (200)\n```json\n{\n  \"unreadCount\": 7\n}\n```"
+					}
+				}
+			]
+		},
+		{
+			"name": "12 – Public",
+			"description": "Public endpoint (no authentication required).",
+			"item": [
+				{
+					"name": "List Doctors (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/public?page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "public"],
+							"query": [
+								{ "key": "page", "value": "1", "description": "Page number" },
+								{ "key": "limit", "value": "10", "description": "Items per page" },
+								{ "key": "specialization", "value": "Cardiology", "description": "Filter by specialization", "disabled": true },
+								{ "key": "search", "value": "John", "description": "Search by name or specialization", "disabled": true }
+							]
+						},
+						"description": "## GET /api/doctor/public\n\n🔓 **No authentication required.**\n\nGet a public list of active doctors. Used by patients to browse and select doctors.\n\n### Query Parameters\n| Parameter | Type | Default | Description |\n|---|---|---|---|\n| `page` | number | 1 | Page number |\n| `limit` | number | 10 | Results per page |\n| `specialization` | string | – | Filter by specialization |\n| `search` | string | – | Search by name or specialization |\n\n### Response (200)\n```json\n{\n  \"doctors\": [\n    {\n      \"_id\": \"...\",\n      \"fullName\": \"Dr. John Smith\",\n      \"specialization\": \"Cardiology\",\n      \"experience\": 10,\n      \"bio\": \"...\",\n      \"rating\": 4.5,\n      \"totalRatings\": 25,\n      \"consultationFee\": 3500,\n      \"avatarUrl\": \"https://...\",\n      \"doctorId\": \"DOC-000001\"\n    }\n  ],\n  \"pagination\": { \"total\": 20, \"page\": 1, \"limit\": 10, \"pages\": 2 }\n}\n```"
+					}
+				}
+			]
+		},
+		{
+			"name": "13 – Account Management",
+			"description": "Delete (hard-delete) the doctor account.",
+			"item": [
+				{
+					"name": "Delete Account",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/account",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "account"]
+						},
+						"description": "## DELETE /api/doctor/account\n\n⚠️ **DANGER ZONE** – Permanently deletes the doctor profile and user account.\n\nMedical records, appointments, and prescriptions are preserved for compliance.\n\n### Authorization\n🔒 Doctor only\n\n### Response (200)\n```json\n{\n  \"message\": \"Account permanently deleted\"\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 404 | Doctor profile not found |"
+					}
+				}
+			]
+		},
+		{
+			"name": "14 – Utility / Debug",
+			"description": "Testing and debugging endpoints (doctor-auth protected).",
+			"item": [
+				{
+					"name": "Trigger Reminder",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/trigger-reminder",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "trigger-reminder"]
+						},
+						"description": "## GET /api/doctor/trigger-reminder\n\nManually trigger the meeting reminder check. Useful for testing without waiting for the cron job.\n\n### Authorization\n🔒 Doctor only\n\n### Response (200)\n```json\n{\n  \"message\": \"Reminder check triggered. See server console for logs.\",\n  \"todayVideoAppointments\": [\n    {\n      \"id\": \"...\",\n      \"date\": \"2026-04-10T00:00:00.000Z\",\n      \"time\": \"14:00\",\n      \"status\": \"confirmed\",\n      \"patientEmail\": \"patient@example.com\",\n      \"meetingUrl\": \"https://...\"\n    }\n  ]\n}\n```"
+					}
+				},
+				{
+					"name": "Send Test Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/doctor/test-email",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "doctor", "test-email"]
+						},
+						"description": "## POST /api/doctor/test-email\n\nSend a test email to the logged-in doctor's email address to verify SMTP configuration.\n\n### Authorization\n🔒 Doctor only\n\n### Response (200)\n```json\n{\n  \"message\": \"Test email sent to doctor@example.com\"\n}\n```\n\n### Error Responses\n| Status | Description |\n|---|---|\n| 400 | No email address on account |\n| 500 | SMTP error |"
+					}
+				}
+			]
+		}
+	]
+}

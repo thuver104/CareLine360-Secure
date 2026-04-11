@@ -1,0 +1,90 @@
+config:
+  target: "{{ baseUrl }}"
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 20
+      name: "Ramp up load"
+    - duration: 60
+      arrivalRate: 50
+      name: "Stress test"
+  processor: "./performance-processor.js"
+  variables:
+    patientToken: ""
+  payload:
+    path: "./patient-payload.csv"
+    delimiter: ","
+    variable: "patientData"
+
+scenarios:
+  - name: "Patient Module Load Test"
+    flow:
+      # Authentication
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ patientData.email }}"
+            password: "{{ patientData.password }}"
+          capture:
+            json: "$.token"
+            as: "patientToken"
+          expect:
+            - statusCode: 200
+
+      # Get Profile
+      - get:
+          url: "/api/patients/me"
+          headers:
+            Authorization: "Bearer {{ patientToken }}"
+          expect:
+            - statusCode: 200
+
+      # Get Medical Records
+      - get:
+          url: "/api/patients/me/medical-record?page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ patientToken }}"
+          expect:
+            - statusCode: 200
+
+      # Get Prescriptions
+      - get:
+          url: "/api/patients/me/prescription?page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ patientToken }}"
+          expect:
+            - statusCode: 200
+
+      # Get Doctors List
+      - get:
+          url: "/api/patients/doctor?page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ patientToken }}"
+          expect:
+            - statusCode: 200
+
+      # Get Hospitals List
+      - get:
+          url: "/api/patients/hospital?page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ patientToken }}"
+          expect:
+            - statusCode: 200
+
+      # Update Profile
+      - patch:
+          url: "/api/patients/me"
+          json:
+            fullName: "John Doe Updated"
+            bloodGroup: "O+"
+            allergies:
+              - Penicillin
+          headers:
+            Authorization: "Bearer {{ patientToken }}"
+          expect:
+            - statusCode: 200
+
+      # Think time between requests
+      - think: 5
