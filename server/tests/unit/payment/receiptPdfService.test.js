@@ -26,8 +26,8 @@ describe("Receipt PDF Service", () => {
           consultationType: "video",
         },
         payment: {
-          amount: 50,
-          currency: "USD",
+          amount: 3500,
+          currency: "LKR",
           method: "card",
           status: "verified",
           transactionRef: "TXN-123",

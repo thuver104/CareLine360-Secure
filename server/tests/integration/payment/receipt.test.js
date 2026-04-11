@@ -84,8 +84,8 @@ describe("Payment Receipt Integration", () => {
     const payment = await Payment.create({
       appointment: appointment._id,
       patient: patient._id,
-      amount: 50,
-      currency: "USD",
+      amount: 3500,
+      currency: "LKR",
       method: "card",
       status: "verified",
       transactionRef: "TXN-TEST-123",
@@ -113,8 +113,8 @@ describe("Payment Receipt Integration", () => {
     const payment = await Payment.create({
       appointment: appointment._id,
       patient: patient._id,
-      amount: 50,
-      currency: "USD",
+      amount: 3500,
+      currency: "LKR",
       method: "card",
       status: "pending",
     });
