@@ -7,6 +7,7 @@ const Rating = require("../models/Rating");
 const Patient = require("../models/Patient");
 const Counter = require("../models/Counter");
 const { uploadBase64Image, deleteCloudinaryFile } = require("./uploadService");
+const emailService = require("./emailService");
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -387,6 +388,17 @@ const updateAppointmentStatus = async ({
   appointment.status = status;
   if (notes) appointment.notes = notes;
   await appointment.save();
+
+  try {
+    const populated = await Appointment.findById(appointmentId).populate("patient doctor");
+    if (status === "confirmed") {
+      await emailService.sendAppointmentConfirmed(populated, populated.patient, populated.doctor);
+    } else if (status === "cancelled") {
+      await emailService.sendAppointmentCancelled(populated, populated.patient, populated.doctor);
+    }
+  } catch (e) {
+    console.error("Email notification failed:", e.message);
+  }
 
   return {
     status: 200,
