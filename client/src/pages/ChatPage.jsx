@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { useUser } from "../context/UserContext";
 import { getMessages, markAsRead } from "../api/chatApi";
 import useSocket from "../hooks/useSocket";
@@ -49,18 +50,16 @@ export default function ChatPage() {
   };
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Consultation Chat</h1>
-        <Link to={`/appointments/${id}`} className="text-sm text-gray-500 hover:text-blue-600 flex items-center space-x-1">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Consultation Chat</h1>
+        <Link to={`/appointments/${id}`} className="text-sm text-gray-500 dark:text-gray-400 hover:text-[#0d9488] dark:hover:text-teal-400 flex items-center space-x-1 transition">
+          <ArrowLeft className="w-4 h-4" />
           <span>Back to Appointment</span>
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm ring-1 ring-gray-100 overflow-hidden flex flex-col" style={{ height: "calc(100vh - 220px)" }}>
+      <div className="glass-card rounded-2xl overflow-hidden flex flex-col" style={{ height: "calc(100vh - 220px)" }}>
         <ChatWindow messages={messages} currentUserId={currentUser?._id} />
         <ChatInput onSend={handleSend} disabled={!currentUser} />
       </div>
