@@ -64,7 +64,10 @@ export default function ChatWidget({ appointment, onClose }) {
 
     const onMessagesRead = () => {
       setMessages((prev) =>
-        prev.map((m) => (m.senderId === myUserId ? { ...m, isRead: true } : m)),
+        prev.map((m) => {
+          const sid = m.senderId?._id || m.senderId || m.sender;
+          return String(sid) === myUserId ? { ...m, isRead: true } : m;
+        }),
       );
     };
 
@@ -193,9 +196,8 @@ export default function ChatWidget({ appointment, onClose }) {
             </div>
           ) : (
             messages.map((msg) => {
-              const isMe =
-                msg.senderId === myUserId ||
-                msg.senderId?.toString() === myUserId;
+              const senderId = msg.senderId?._id || msg.senderId || msg.sender;
+              const isMe = String(senderId) === myUserId;
               return (
                 <div
                   key={msg._id || msg.createdAt}
