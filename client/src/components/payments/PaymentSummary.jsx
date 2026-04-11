@@ -9,7 +9,7 @@ export default function PaymentSummary({ payment }) {
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
           <span className="text-gray-600 dark:text-gray-400">Amount:</span>
-          <span className="font-medium text-gray-900 dark:text-white">${payment.amount?.toFixed(2)} {payment.currency}</span>
+          <span className="font-medium text-gray-900 dark:text-white">{payment.currency || "LKR"} {payment.amount?.toLocaleString("en-LK", { minimumFractionDigits: 2 })}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600 dark:text-gray-400">Method:</span>

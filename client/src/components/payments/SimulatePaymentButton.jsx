@@ -10,7 +10,7 @@ export default function SimulatePaymentButton({ appointmentId, patientId, onPaym
       const res = await createPayment({
         appointment: appointmentId,
         patient: patientId,
-        amount: 50,
+        amount: 3500,
         method: "card",
       });
       onPaymentUpdate(res.data.data);
