@@ -1,0 +1,469 @@
+{
+  "info": {
+    "_postman_id": "patient-module-001",
+    "name": "CareLine360 - Patient Module",
+    "description": "Complete API documentation for Patient Module endpoints including profile management, medical records, prescriptions, doctors, hospitals, and emergency services.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login Patient",
+          "id": "patient-login-001",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientIdentifier}}\",\n  \"password\": \"{{patientPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Authenticate patient and get JWT token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Profile Management",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "id": "patient-profile-get-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{patientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/me",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "me"]
+            },
+            "description": "Retrieve authenticated patient's profile with profile strength score"
+          },
+          "response": []
+        },
+        {
+          "name": "Update My Profile",
+          "id": "patient-profile-patch-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{patientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Jane Doe\",\n  \"dob\": \"1990-05-15\",\n  \"gender\": \"female\",\n  \"nic\": \"900512345V\",\n  \"address\": {\n    \"line1\": \"456 Oak Avenue\",\n    \"city\": \"Colombo\",\n    \"district\": \"Western\"\n  },\n  \"emergencyContact\": {\n    \"name\": \"John Doe\",\n    \"phone\": \"+94771234566\",\n    \"relationship\": \"Spouse\"\n  },\n  \"bloodGroup\": \"A+\",\n  \"allergies\": [\"Penicillin\", \"Aspirin\"],\n  \"chronicConditions\": [\"Diabetes\", \"Hypertension\"],\n  \"heightCm\": 165,\n  \"weightKg\": 65\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/me",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "me"]
+            },
+            "description": "Update patient's profile information"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Avatar",
+          "id": "patient-profile-avatar-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{patientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/me/avatar",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "me", "avatar"]
+            },
+            "description": "Upload or update patient's profile picture"
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate Account",
+          "id": "patient-profile-deactivate-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{patientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/me/deactivate",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "me", "deactivate"]
+            },
+            "description": "Deactivate patient account"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Medical Information",
+      "item": [
+        {
+          "name": "Get Medical Records",
+          "id": "patient-medical-records-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{patientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/me/medical-record?page=1&limit=10",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "me", "medical-record"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Retrieve patient's medical records"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Prescriptions",
+          "id": "patient-medical-prescriptions-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{patientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/me/prescription?page=1&limit=10&status=ACTIVE",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "me", "prescription"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                }
+              ]
+            },
+            "description": "Retrieve patient's prescriptions with status filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "AI Explain Medical Text",
+          "id": "patient-medical-ai-explain-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{patientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"What does hypertension mean?\",\n  \"context\": \"medical\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/me/ai-explain",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "me", "ai-explain"]
+            },
+            "description": "Get AI-powered explanation of medical text"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Healthcare Directory",
+      "item": [
+        {
+          "name": "Get All Doctors",
+          "id": "patient-directory-doctors-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{patientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/doctor?page=1&limit=10&specialization=&rating=",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "doctor"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "specialization",
+                  "value": ""
+                },
+                {
+                  "key": "rating",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Retrieve list of available doctors with pagination and filtering"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Doctor Details",
+          "id": "patient-directory-doctor-details-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{patientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/doctor/{{doctorId}}",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "doctor", "{{doctorId}}"]
+            },
+            "description": "Get detailed information about specific doctor"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Hospitals",
+          "id": "patient-directory-hospitals-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{patientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/hospital?page=1&limit=10&district=&search=",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "hospital"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "district",
+                  "value": ""
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Retrieve list of all hospitals"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Hospital Details",
+          "id": "patient-directory-hospital-details-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{patientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/hospital/{{hospitalId}}",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "hospital", "{{hospitalId}}"]
+            },
+            "description": "Get detailed information about specific hospital"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Emergency Services",
+      "item": [
+        {
+          "name": "Create Emergency",
+          "id": "patient-emergency-create-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{patientToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Severe Chest Pain\",\n  \"description\": \"Experiencing severe chest pain and shortness of breath\",\n  \"severity\": \"critical\",\n  \"location\": {\n    \"latitude\": 6.9271,\n    \"longitude\": 80.7744,\n    \"address\": \"123 Main Street, Colombo\"\n  },\n  \"symptoms\": [\"chest pain\", \"shortness of breath\", \"dizziness\"],\n  \"allergies\": [\"Penicillin\"],\n  \"chronicConditions\": [\"Diabetes\"],\n  \"emergencyContact\": {\n    \"name\": \"Jane Doe\",\n    \"phone\": \"+94771234567\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/emergency",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "emergency"]
+            },
+            "description": "Create emergency case report with location and medical details"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

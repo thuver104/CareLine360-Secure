@@ -1,4 +1,3 @@
-const { validationResult } = require("express-validator");
 const doctorService = require("../services/doctorService");
 const Appointment = require("../models/Appointment");
 const Patient = require("../models/Patient");
@@ -9,39 +8,41 @@ const {
   getMeetingUrl,
 } = require("../services/meetingScheduler");
 
-const handleValidation = (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    res.status(400).json({ errors: errors.array() });
-    return false;
-  }
-  return true;
-};
-
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
-const createProfile = async (req, res) => {
-  if (!handleValidation(req, res)) return;
-  const result = await doctorService.createDoctorProfile({
-    userId: req.user.userId,
-    ...req.body,
-  });
-  res.status(result.status).json(result.data);
+const createProfile = async (req, res, next) => {
+  try {
+    const result = await doctorService.createDoctorProfile({
+      userId: req.user.userId,
+      ...req.body,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
-const getProfile = async (req, res) => {
-  const result = await doctorService.getDoctorProfile({
-    userId: req.user.userId,
-  });
-  res.status(result.status).json(result.data);
+const getProfile = async (req, res, next) => {
+  try {
+    const result = await doctorService.getDoctorProfile({
+      userId: req.user.userId,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
-const updateProfile = async (req, res) => {
-  const result = await doctorService.updateDoctorProfile({
-    userId: req.user.userId,
-    updates: req.body,
-  });
-  res.status(result.status).json(result.data);
+const updateProfile = async (req, res, next) => {
+  try {
+    const result = await doctorService.updateDoctorProfile({
+      userId: req.user.userId,
+      updates: req.body,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -49,189 +50,256 @@ const updateProfile = async (req, res) => {
  * Body: { image: "data:image/jpeg;base64,..." }
  * No Multer needed — pure base64 via JSON body.
  */
-const updateAvatar = async (req, res) => {
-  const { image } = req.body;
-  if (!image)
-    return res
-      .status(400)
-      .json({ message: "image (base64) is required in request body" });
+const updateAvatar = async (req, res, next) => {
+  try {
+    const { image } = req.body;
+    if (!image)
+      return res
+        .status(400)
+        .json({ success: false, message: "image (base64) is required in request body" });
 
-  const result = await doctorService.updateAvatarBase64({
-    userId: req.user.userId,
-    base64Image: image,
-  });
-  res.status(result.status).json(result.data);
+    const result = await doctorService.updateAvatarBase64({
+      userId: req.user.userId,
+      base64Image: image,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
-const getDashboard = async (req, res) => {
-  const result = await doctorService.getDashboardStats({
-    userId: req.user.userId,
-  });
-  res.status(result.status).json(result.data);
+const getDashboard = async (req, res, next) => {
+  try {
+    const result = await doctorService.getDashboardStats({
+      userId: req.user.userId,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
-const getAnalytics = async (req, res) => {
-  const result = await doctorService.getDoctorAnalytics({
-    userId: req.user.userId,
-  });
-  res.status(result.status).json(result.data);
+const getAnalytics = async (req, res, next) => {
+  try {
+    const result = await doctorService.getDoctorAnalytics({
+      userId: req.user.userId,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ─── Availability ─────────────────────────────────────────────────────────────
 
-const getAvailability = async (req, res) => {
-  const result = await doctorService.getAvailability({
-    userId: req.user.userId,
-  });
-  res.status(result.status).json(result.data);
+const getAvailability = async (req, res, next) => {
+  try {
+    const result = await doctorService.getAvailability({
+      userId: req.user.userId,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
-const addSlots = async (req, res) => {
-  if (!handleValidation(req, res)) return;
-  const { slots } = req.body;
-  if (!Array.isArray(slots) || slots.length === 0)
-    return res.status(400).json({ message: "slots must be a non-empty array" });
-  const result = await doctorService.addAvailabilitySlots({
-    userId: req.user.userId,
-    slots,
-  });
-  res.status(result.status).json(result.data);
+const addSlots = async (req, res, next) => {
+  try {
+    const { slots } = req.body;
+    if (!Array.isArray(slots) || slots.length === 0)
+      return res.status(400).json({ success: false, message: "slots must be a non-empty array" });
+    const result = await doctorService.addAvailabilitySlots({
+      userId: req.user.userId,
+      slots,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
-const deleteSlot = async (req, res) => {
-  const result = await doctorService.deleteAvailabilitySlot({
-    userId: req.user.userId,
-    slotId: req.params.slotId,
-  });
-  res.status(result.status).json(result.data);
+const deleteSlot = async (req, res, next) => {
+  try {
+    const result = await doctorService.deleteAvailabilitySlot({
+      userId: req.user.userId,
+      slotId: req.params.slotId,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
-const updateSlot = async (req, res) => {
-  const { startTime, endTime } = req.body;
-  const result = await doctorService.updateAvailabilitySlot({
-    userId: req.user.userId,
-    slotId: req.params.slotId,
-    startTime,
-    endTime,
-  });
-  res.status(result.status).json(result.data);
+const updateSlot = async (req, res, next) => {
+  try {
+    const { startTime, endTime } = req.body;
+    const result = await doctorService.updateAvailabilitySlot({
+      userId: req.user.userId,
+      slotId: req.params.slotId,
+      startTime,
+      endTime,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ─── Appointments ─────────────────────────────────────────────────────────────
 
-const getAppointments = async (req, res) => {
-  const { status, date, dateFrom, dateTo, search, page, limit } = req.query;
-  const result = await doctorService.getMyAppointments({
-    userId: req.user.userId,
-    status,
-    date,
-    dateFrom,
-    dateTo,
-    search,
-    page,
-    limit,
-  });
-  res.status(result.status).json(result.data);
+const getAppointments = async (req, res, next) => {
+  try {
+    const { status, date, dateFrom, dateTo, search, page, limit } = req.query;
+    const result = await doctorService.getMyAppointments({
+      userId: req.user.userId,
+      status,
+      date,
+      dateFrom,
+      dateTo,
+      search,
+      page,
+      limit,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
-const updateAppointment = async (req, res) => {
-  const result = await doctorService.updateAppointmentStatus({
-    userId: req.user.userId,
-    appointmentId: req.params.appointmentId,
-    status: req.body.status,
-    notes: req.body.notes,
-  });
-  res.status(result.status).json(result.data);
+const updateAppointment = async (req, res, next) => {
+  try {
+    const result = await doctorService.updateAppointmentStatus({
+      userId: req.user.userId,
+      appointmentId: req.params.appointmentId,
+      status: req.body.status,
+      notes: req.body.notes,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
-const deleteAppointment = async (req, res) => {
-  const result = await doctorService.deleteAppointment({
-    userId: req.user.userId,
-    appointmentId: req.params.appointmentId,
-  });
-  res.status(result.status).json(result.data);
+const deleteAppointment = async (req, res, next) => {
+  try {
+    const result = await doctorService.deleteAppointment({
+      userId: req.user.userId,
+      appointmentId: req.params.appointmentId,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ─── Patients ─────────────────────────────────────────────────────────────────
 
-const getPatients = async (req, res) => {
-  const result = await doctorService.getMyPatients({
-    userId: req.user.userId,
-    ...req.query,
-  });
-  res.status(result.status).json(result.data);
+const getPatients = async (req, res, next) => {
+  try {
+    const result = await doctorService.getMyPatients({
+      userId: req.user.userId,
+      ...req.query,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
-const getPatientDetail = async (req, res) => {
-  const result = await doctorService.getPatientDetail({
-    userId: req.user.userId,
-    patientDbId: req.params.patientId,
-  });
-  res.status(result.status).json(result.data);
+const getPatientDetail = async (req, res, next) => {
+  try {
+    const result = await doctorService.getPatientDetail({
+      userId: req.user.userId,
+      patientDbId: req.params.patientId,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ─── Medical Records ──────────────────────────────────────────────────────────
 
-const createRecord = async (req, res) => {
-  const result = await doctorService.createMedicalRecord({
-    userId: req.user.userId,
-    data: req.body,
-  });
-  res.status(result.status).json(result.data);
+const createRecord = async (req, res, next) => {
+  try {
+    const result = await doctorService.createMedicalRecord({
+      userId: req.user.userId,
+      data: req.body,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
-const getRecordsByPatient = async (req, res) => {
-  const result = await doctorService.getMedicalRecordsByPatient({
-    userId: req.user.userId,
-    patientId: req.params.patientId,
-    ...req.query,
-  });
-  res.status(result.status).json(result.data);
+const getRecordsByPatient = async (req, res, next) => {
+  try {
+    const result = await doctorService.getMedicalRecordsByPatient({
+      userId: req.user.userId,
+      patientId: req.params.patientId,
+      ...req.query,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
-const updateRecord = async (req, res) => {
-  const result = await doctorService.updateMedicalRecord({
-    userId: req.user.userId,
-    recordId: req.params.recordId,
-    updates: req.body,
-  });
-  res.status(result.status).json(result.data);
+const updateRecord = async (req, res, next) => {
+  try {
+    const result = await doctorService.updateMedicalRecord({
+      userId: req.user.userId,
+      recordId: req.params.recordId,
+      updates: req.body,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ─── Prescriptions ────────────────────────────────────────────────────────────
 
-const savePrescription = async (req, res) => {
-  const result = await doctorService.savePrescription({
-    userId: req.user.userId,
-    data: req.body,
-  });
-  res.status(result.status).json(result.data);
+const savePrescription = async (req, res, next) => {
+  try {
+    const result = await doctorService.savePrescription({
+      userId: req.user.userId,
+      data: req.body,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
-const getPrescriptions = async (req, res) => {
-  const result = await doctorService.getMyPrescriptions({
-    userId: req.user.userId,
-    ...req.query,
-  });
-  res.status(result.status).json(result.data);
+const getPrescriptions = async (req, res, next) => {
+  try {
+    const result = await doctorService.getMyPrescriptions({
+      userId: req.user.userId,
+      ...req.query,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Proxy Cloudinary PDF to the browser as a forced download.
 // Using the backend avoids CORS / Content-Disposition:inline issues.
-const downloadPrescription = async (req, res) => {
+const downloadPrescription = async (req, res, next) => {
   const { url, filename = "prescription.pdf" } = req.query;
-  if (!url) return res.status(400).json({ message: "url is required" });
+  if (!url) return res.status(400).json({ success: false, message: "url is required" });
 
   // Only allow Cloudinary URLs for security
   try {
     const p = new URL(url);
     if (!p.hostname.endsWith("cloudinary.com")) {
-      return res.status(403).json({ message: "URL not allowed" });
+      return res.status(403).json({ success: false, message: "URL not allowed" });
     }
   } catch {
-    return res.status(400).json({ message: "Invalid URL" });
+    return res.status(400).json({ success: false, message: "Invalid URL" });
   }
 
   const https = require("https");
@@ -248,13 +316,13 @@ const downloadPrescription = async (req, res) => {
         if ([301, 302, 303, 307, 308].includes(upstream.statusCode)) {
           upstream.resume(); // discard body
           if (redirectsLeft <= 0) {
-            return res.status(502).json({ message: "Too many redirects" });
+            return res.status(502).json({ success: false, message: "Too many redirects" });
           }
           const location = upstream.headers.location;
           if (!location) {
             return res
               .status(502)
-              .json({ message: "Redirect missing location header" });
+              .json({ success: false, message: "Redirect missing location header" });
           }
           return fetchAndStream(
             new URL(location, targetUrl).href,
@@ -265,7 +333,7 @@ const downloadPrescription = async (req, res) => {
         if (upstream.statusCode !== 200) {
           return res
             .status(502)
-            .json({ message: `Upstream error: ${upstream.statusCode}` });
+            .json({ success: false, message: `Upstream error: ${upstream.statusCode}` });
         }
 
         const safeFilename = filename.replace(/[^\w.\-]/g, "_");
@@ -283,7 +351,7 @@ const downloadPrescription = async (req, res) => {
         if (!res.headersSent) {
           res
             .status(502)
-            .json({ message: "Failed to fetch file from Cloudinary" });
+            .json({ success: false, message: "Failed to fetch file from Cloudinary" });
         }
       });
   };
@@ -293,19 +361,27 @@ const downloadPrescription = async (req, res) => {
 
 // ─── Ratings ──────────────────────────────────────────────────────────────────
 
-const getRatings = async (req, res) => {
-  const result = await doctorService.getMyRatings({
-    userId: req.user.userId,
-    ...req.query,
-  });
-  res.status(result.status).json(result.data);
+const getRatings = async (req, res, next) => {
+  try {
+    const result = await doctorService.getMyRatings({
+      userId: req.user.userId,
+      ...req.query,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ─── Public ───────────────────────────────────────────────────────────────────
 
-const listDoctors = async (req, res) => {
-  const result = await doctorService.getPublicDoctors(req.query);
-  res.status(result.status).json(result.data);
+const listDoctors = async (req, res, next) => {
+  try {
+    const result = await doctorService.getPublicDoctors(req.query);
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ─── Meetings (video-call appointments) ──────────────────────────────────────
@@ -315,7 +391,7 @@ const listDoctors = async (req, res) => {
  * Returns all video-call appointments for the logged-in doctor,
  * enriched with patient profile data, ordered by date/time ascending.
  */
-const getMeetings = async (req, res) => {
+const getMeetings = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const { status } = req.query;
@@ -348,8 +424,7 @@ const getMeetings = async (req, res) => {
 
     res.status(200).json({ meetings: appointments });
   } catch (err) {
-    console.error("getMeetings error:", err);
-    res.status(500).json({ message: err.message || "Internal server error" });
+    next(err);
   }
 };
 
@@ -360,11 +435,15 @@ const getMeetings = async (req, res) => {
  * Soft-deletes the doctor profile and deactivates the User account.
  * Medical records and appointments are preserved.
  */
-const deactivateAccount = async (req, res) => {
-  const result = await doctorService.deactivateDoctorAccount({
-    userId: req.user.userId,
-  });
-  res.status(result.status).json(result.data);
+const deactivateAccount = async (req, res, next) => {
+  try {
+    const result = await doctorService.deactivateDoctorAccount({
+      userId: req.user.userId,
+    });
+    res.status(result.status).json(result.data);
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
@@ -372,7 +451,7 @@ const deactivateAccount = async (req, res) => {
  * Manually runs the meeting reminder check (verbose mode) and returns a report.
  * Useful for testing without waiting for the cron tick.
  */
-const triggerReminder = async (req, res) => {
+const triggerReminder = async (req, res, next) => {
   try {
     // Clear remindedSet is not accessible here; instruct user to restart if needed.
     // Run verbose check — logs appear in server console.
@@ -405,7 +484,7 @@ const triggerReminder = async (req, res) => {
       })),
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
@@ -413,7 +492,7 @@ const triggerReminder = async (req, res) => {
  * POST /api/doctor/test-email
  * Sends a test email to the currently logged-in doctor to verify SMTP config.
  */
-const sendTestEmail = async (req, res) => {
+const sendTestEmail = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const User = require("../models/User");
@@ -424,7 +503,7 @@ const sendTestEmail = async (req, res) => {
     if (!to)
       return res
         .status(400)
-        .json({ error: "No email address on your account." });
+        .json({ success: false, message: "No email address on your account." });
 
     await sendEmail({
       to,
@@ -441,7 +520,7 @@ const sendTestEmail = async (req, res) => {
 
     res.json({ message: `Test email sent to ${to}` });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 

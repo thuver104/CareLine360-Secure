@@ -5,15 +5,15 @@ export default function PaymentSummary({ payment }) {
 
   return (
     <div className="bg-white rounded-xl shadow-sm ring-1 ring-gray-100 p-4">
-      <h3 className="font-semibold mb-3">Payment Details</h3>
+      <h3 className="font-semibold mb-3 text-gray-900">Payment Details</h3>
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
           <span className="text-gray-600">Amount:</span>
-          <span className="font-medium">${payment.amount?.toFixed(2)} {payment.currency}</span>
+          <span className="font-medium text-gray-900">${payment.amount?.toFixed(2)} {payment.currency}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600">Method:</span>
-          <span className="capitalize">{payment.method}</span>
+          <span className="capitalize text-gray-900">{payment.method}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600">Status:</span>
@@ -22,13 +22,13 @@ export default function PaymentSummary({ payment }) {
         {payment.transactionRef && (
           <div className="flex justify-between">
             <span className="text-gray-600">Ref:</span>
-            <span className="font-mono text-xs">{payment.transactionRef}</span>
+            <span className="font-mono text-xs text-gray-900">{payment.transactionRef}</span>
           </div>
         )}
         {payment.verifiedAt && (
           <div className="flex justify-between">
             <span className="text-gray-600">Verified:</span>
-            <span>{new Date(payment.verifiedAt).toLocaleString()}</span>
+            <span className="text-gray-900">{new Date(payment.verifiedAt).toLocaleString()}</span>
           </div>
         )}
       </div>

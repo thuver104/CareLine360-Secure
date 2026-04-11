@@ -1,0 +1,73 @@
+config:
+  target: "{{ baseUrl }}"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 15
+      name: "Ramp up load"
+    - duration: 60
+      arrivalRate: 30
+      name: "Stress test"
+  processor: "./performance-processor.js"
+  variables:
+    adminToken: ""
+
+scenarios:
+  - name: "Admin Module Load Test"
+    flow:
+      # Admin Login
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "admin@careline360.com"
+            password: "AdminPassword@123"
+          capture:
+            json: "$.token"
+            as: "adminToken"
+          expect:
+            - statusCode: 200
+
+      # Get All Users
+      - get:
+          url: "/api/admin/users?page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+          expect:
+            - statusCode: 200
+
+      # Get Appointments
+      - get:
+          url: "/api/admin/appointments?page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+          expect:
+            - statusCode: 200
+
+      # Get System Statistics
+      - get:
+          url: "/api/admin/stats"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+          expect:
+            - statusCode: 200
+
+      # Get Emergency Cases
+      - get:
+          url: "/api/admin/emergencies?page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+          expect:
+            - statusCode: 200
+
+      # Get Pending Doctors
+      - get:
+          url: "/api/admin/doctors/pending"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+          expect:
+            - statusCode: 200
+
+      # Think time between requests
+      - think: 5
