@@ -1,6 +1,19 @@
 const express = require("express");
-const { body } = require("express-validator");
 const { authMiddleware, roleMiddleware } = require("../middleware/auth");
+const validateRequest = require("../middleware/validateRequest");
+
+const {
+  createProfileRules,
+  updateProfileRules,
+  updateAvatarRules,
+  addSlotsRules,
+  updateSlotRules,
+  updateAppointmentStatusRules,
+  createMedicalRecordRules,
+  updateMedicalRecordRules,
+  savePrescriptionRules,
+  mongoIdParam,
+} = require("../validators/doctorValidator");
 
 const {
   createProfile,
@@ -48,11 +61,18 @@ const doctorAuth = [authMiddleware, roleMiddleware(["doctor"])];
 router.post(
   "/profile",
   doctorAuth,
-  [body("fullName").notEmpty(), body("specialization").notEmpty()],
+  createProfileRules,
+  validateRequest,
   createProfile,
 );
 router.get("/profile", doctorAuth, getProfile);
-router.put("/profile", doctorAuth, updateProfile);
+router.put(
+  "/profile",
+  doctorAuth,
+  updateProfileRules,
+  validateRequest,
+  updateProfile,
+);
 
 // Account deactivation (soft-delete)
 router.delete("/account", doctorAuth, deactivateAccount);
@@ -61,7 +81,8 @@ router.delete("/account", doctorAuth, deactivateAccount);
 router.put(
   "/profile/avatar",
   doctorAuth,
-  [body("image").notEmpty().withMessage("image (base64) is required")],
+  updateAvatarRules,
+  validateRequest,
   updateAvatar,
 );
 
@@ -74,21 +95,41 @@ router.get("/availability", doctorAuth, getAvailability);
 router.post(
   "/availability",
   doctorAuth,
-  [body("slots").isArray({ min: 1 })],
+  addSlotsRules,
+  validateRequest,
   addSlots,
 );
-router.delete("/availability/:slotId", doctorAuth, deleteSlot);
+router.delete(
+  "/availability/:slotId",
+  doctorAuth,
+  mongoIdParam("slotId"),
+  validateRequest,
+  deleteSlot,
+);
 router.put(
   "/availability/:slotId",
   doctorAuth,
-  [body("startTime").notEmpty(), body("endTime").notEmpty()],
+  updateSlotRules,
+  validateRequest,
   updateSlot,
 );
 
 // Appointments
 router.get("/appointments", doctorAuth, getAppointments);
-router.patch("/appointments/:appointmentId", doctorAuth, updateAppointment);
-router.delete("/appointments/:appointmentId", doctorAuth, deleteAppointment);
+router.patch(
+  "/appointments/:appointmentId",
+  doctorAuth,
+  updateAppointmentStatusRules,
+  validateRequest,
+  updateAppointment,
+);
+router.delete(
+  "/appointments/:appointmentId",
+  doctorAuth,
+  mongoIdParam("appointmentId"),
+  validateRequest,
+  deleteAppointment,
+);
 
 // Meetings (video-call appointments)
 router.get("/meetings", doctorAuth, getMeetings);
@@ -99,16 +140,46 @@ router.post("/test-email", doctorAuth, sendTestEmail);
 
 // Patients
 router.get("/patients", doctorAuth, getPatients);
-router.get("/patients/:patientId", doctorAuth, getPatientDetail);
+router.get(
+  "/patients/:patientId",
+  doctorAuth,
+  mongoIdParam("patientId"),
+  validateRequest,
+  getPatientDetail,
+);
 
 // Medical records
-router.post("/records", doctorAuth, createRecord);
-router.get("/records/:patientId", doctorAuth, getRecordsByPatient);
-router.put("/records/:recordId", doctorAuth, updateRecord);
+router.post(
+  "/records",
+  doctorAuth,
+  createMedicalRecordRules,
+  validateRequest,
+  createRecord,
+);
+router.get(
+  "/records/:patientId",
+  doctorAuth,
+  mongoIdParam("patientId"),
+  validateRequest,
+  getRecordsByPatient,
+);
+router.put(
+  "/records/:recordId",
+  doctorAuth,
+  updateMedicalRecordRules,
+  validateRequest,
+  updateRecord,
+);
 
 // Prescriptions
 router.post("/prescriptions/generate", doctorAuth, generatePrescriptionPdf);
-router.post("/prescriptions", doctorAuth, savePrescription);
+router.post(
+  "/prescriptions",
+  doctorAuth,
+  savePrescriptionRules,
+  validateRequest,
+  savePrescription,
+);
 router.get("/prescriptions", doctorAuth, getPrescriptions);
 router.get("/prescriptions/download", doctorAuth, downloadPrescription);
 
