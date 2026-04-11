@@ -80,7 +80,8 @@ export default function PaymentPage() {
       const createRes = await createPayment({
         appointment: id,
         patient: appointment.patient._id,
-        amount: 50,
+        amount: 3500,
+        currency: "LKR",
         method: "card",
       });
       const created = createRes.data.data;
@@ -208,7 +209,7 @@ export default function PaymentPage() {
       <div className="glass-card rounded-2xl p-6">
         <div className="flex justify-between items-center mb-6">
           <span className="text-sm text-gray-600 dark:text-gray-400">Amount Due</span>
-          <span className="text-2xl font-bold text-gray-800 dark:text-white">$50.00</span>
+          <span className="text-2xl font-bold text-gray-800 dark:text-white">LKR 3,500.00</span>
         </div>
 
         <div className="space-y-4">
@@ -270,7 +271,7 @@ export default function PaymentPage() {
           disabled={processing}
           className="w-full mt-6 py-3 bg-[#0d9488] text-white font-medium rounded-xl hover:bg-[#0b7c72] active:scale-[0.98] disabled:opacity-50 transition shadow-sm"
         >
-          {processing ? "Processing..." : "Pay $50.00"}
+          {processing ? "Processing..." : "Pay LKR 3,500.00"}
         </button>
 
         <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-3 flex items-center justify-center gap-1">
