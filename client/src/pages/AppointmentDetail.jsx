@@ -14,6 +14,7 @@ import PaymentSummary from "../components/payments/PaymentSummary";
 import RescheduleModal from "../components/appointments/RescheduleModal";
 import RatingModal from "../components/appointments/RatingModal";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
+import ChatFab from "../components/chat/ChatFab";
 import { formatDate } from "../utils/formatDate";
 import { displayName } from "../utils/displayName";
 import { getInitials } from "../utils/colors";
@@ -286,12 +287,7 @@ export default function AppointmentDetail() {
                   <CheckCircle className="w-4 h-4" /> Complete
                 </button>
               )}
-              {status === "confirmed" && (
-                <Link to={`/appointments/${id}/chat`}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition shadow-sm">
-                  <MessageSquare className="w-4 h-4" /> Chat
-                </Link>
-              )}
+              {/* Chat is now a floating widget — see ChatFab below */}
               {status === "confirmed" && (
                 <button onClick={() => setShowReschedule(true)}
                   className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-white text-sm rounded-xl hover:bg-amber-600 active:scale-[0.98] transition shadow-sm">
@@ -427,6 +423,8 @@ export default function AppointmentDetail() {
           onClose={() => setShowRating(false)}
           onRated={(newRating) => setRating(newRating)} />
       )}
+
+      <ChatFab appointmentId={id} status={status} doctorName={doctorName} />
     </div>
   );
 }
