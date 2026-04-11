@@ -66,7 +66,7 @@ const generateReceiptBuffer = ({ patient, appointment, payment, doctor }) => {
     doc.fontSize(11).font("Helvetica-Bold").fillColor(teal).text("PAYMENT DETAILS");
     doc.moveDown(0.3);
     doc.fontSize(10).font("Helvetica").fillColor(darkGray);
-    doc.text(`Amount: $${payment.amount?.toFixed(2) || "0.00"} ${payment.currency || "USD"}`);
+    doc.text(`Amount: ${payment.currency || "LKR"} ${payment.amount?.toLocaleString("en-LK", { minimumFractionDigits: 2 }) || "0.00"}`);
     doc.text(`Method: ${payment.method || "N/A"}`);
     doc.text(`Status: ${payment.status || "N/A"}`);
     doc.text(`Transaction Ref: ${payment.transactionRef || "N/A"}`);
