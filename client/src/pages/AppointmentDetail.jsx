@@ -331,7 +331,7 @@ export default function AppointmentDetail() {
             {payment ? (
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{payment.currency || "LKR"} {payment.amount?.toLocaleString("en-LK", { minimumFractionDigits: 2 })}</span>
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">LKR {payment.amount?.toLocaleString("en-LK", { minimumFractionDigits: 2 })}</span>
                   <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
                     payment.status === "verified" ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300" :
                     payment.status === "failed" ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300" :

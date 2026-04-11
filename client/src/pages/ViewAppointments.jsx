@@ -15,6 +15,8 @@ const STATUS_TABS = [
   { key: "", label: "All" },
   { key: "pending", label: "Pending" },
   { key: "confirmed", label: "Confirmed" },
+  { key: "completed", label: "Completed" },
+  { key: "cancelled", label: "Cancelled" },
 ];
 
 const SORT_OPTIONS = [
@@ -44,9 +46,8 @@ export default function ViewAppointments() {
       const params = { ...filters };
       if (currentUserRole === "patient") params.patient = currentUserId;
       if (currentUserRole === "doctor") params.doctor = currentUserId;
-      if (!params.status) {
-        params.status = "pending,confirmed";
-      }
+      // If "All" tab is selected (empty status), fetch all statuses
+      // Otherwise use the selected status filter
 
       const res = await getAppointments(params);
       setAppointments(res.data.appointments);
