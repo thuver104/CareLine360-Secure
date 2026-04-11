@@ -10,3 +10,6 @@ export const getPaymentByAppointment = (appointmentId) =>
 export const verifyPayment = (id) => api.patch(`/payments/${id}/verify`);
 
 export const failPayment = (id) => api.patch(`/payments/${id}/fail`);
+
+export const downloadReceipt = (id) =>
+  api.get(`/payments/${id}/receipt`, { responseType: "blob" });
