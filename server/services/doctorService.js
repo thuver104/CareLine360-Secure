@@ -321,7 +321,7 @@ const getMyAppointments = async ({
 
   let appointments = await Appointment.find(query)
     .populate({ path: "patient", select: "email phone" })
-    .sort({ date: 1, time: 1 })
+    .sort({ date: -1, time: -1 })
     .skip(skip)
     .limit(Number(limit))
     .lean();
