@@ -3,7 +3,7 @@ const { authMiddleware, roleMiddleware } = require("../middleware/auth");
 const { getMessages, getUnreadCount, getChatInbox } = require("../controllers/chatController");
 
 const router = express.Router();
-const chatAuth = [authMiddleware, roleMiddleware(["doctor", "patient"])];
+const chatAuth = [authMiddleware, roleMiddleware(["doctor", "patient", "user"])];
 
 // Chat inbox (list of chats with last message)
 router.get("/inbox", chatAuth, getChatInbox);

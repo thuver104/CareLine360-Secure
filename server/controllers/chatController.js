@@ -16,13 +16,15 @@ const getMessages = async (req, res) => {
     const appointment = await Appointment.findById(appointmentId);
     if (!appointment) return res.status(404).json({ message: "Appointment not found" });
 
-    const isDoctor = appointment.doctor.toString() === userId;
-    const isPatient = appointment.patient.toString() === userId;
+    const uid = userId.toString();
+    const isDoctor = appointment.doctor.toString() === uid;
+    const isPatient = appointment.patient.toString() === uid;
     if (!isDoctor && !isPatient) return res.status(403).json({ message: "Access denied" });
 
     const skip = (Number(page) - 1) * Number(limit);
     const total = await ChatMessage.countDocuments({ appointmentId });
     const messages = await ChatMessage.find({ appointmentId })
+      .populate("senderId", "fullName email phone")
       .sort({ createdAt: 1 })
       .skip(skip)
       .limit(Number(limit))
