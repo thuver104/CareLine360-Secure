@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
 import { connectSocket, disconnectSocket } from "./socket/socketClient";
-import { hasToken } from "./auth/authStorage";
+import { useAuth } from "./context/AuthContext";
 
 // Layouts
 import MainLayout from "./layouts/MainLayout";
@@ -52,8 +52,10 @@ import AppointmentHistory from "./pages/AppointmentHistory";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 export default function App() {
+  const { isAuthenticated, loading } = useAuth();
+
   useEffect(() => {
-    if (hasToken()) connectSocket();
+    if (!loading && isAuthenticated) connectSocket();
 
     const onStorage = (e) => {
       if (e.key === "accessToken") {
@@ -64,7 +66,7 @@ export default function App() {
 
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  }, [isAuthenticated, loading]);
 
   return (
     <ThemeProvider>
