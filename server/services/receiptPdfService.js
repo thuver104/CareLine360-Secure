@@ -98,6 +98,9 @@ const generateReceiptBuffer = ({ patient, appointment, payment, doctor }) => {
  * Upload a receipt PDF buffer to Cloudinary.
  */
 const uploadReceiptBuffer = (pdfBuffer) => {
+  if (!process.env.CLOUDINARY_CLOUD_NAME) {
+    return Promise.resolve(null);
+  }
   return new Promise((resolve, reject) => {
     try {
       const uploadStream = cloudinary.uploader.upload_stream(

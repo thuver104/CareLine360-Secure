@@ -1,6 +1,6 @@
 const { Resend } = require("resend");
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY || "re_placeholder");
 
 const sendEmail = async ({ to, subject, html }) => {
   const recipient = process.env.EMAIL_OVERRIDE_TO || to;
