@@ -45,6 +45,11 @@ export default function ChatWidget({ appointment, onClose }) {
       return;
     }
 
+    // If the socket is already connected, mark as connected immediately
+    if (socket.connected) {
+      setConnected(true);
+    }
+
     // Load history via REST first
     getChatHistory(appointmentId)
       .then((r) => {
@@ -86,13 +91,21 @@ export default function ChatWidget({ appointment, onClose }) {
         _id: msg._id,
         sender: msg.senderName || msg.sender,
         appointmentId: msg.appointmentId,
-        text: msg.text?.substring(0, 50),
+        text: msg.message?.substring(0, 50),
       });
       setMessages((prev) => {
-        // Avoid duplicates
+        // Avoid duplicates (by real _id)
         if (prev.some((m) => m._id === msg._id)) {
           console.log("⚠️ ChatWidget: Duplicate message detected, skipping");
           return prev;
+        }
+        // Replace optimistic message with server-confirmed one
+        const hasOptimistic = prev.some((m) => m._optimistic && m.message === msg.message);
+        if (hasOptimistic) {
+          const idx = prev.findIndex((m) => m._optimistic && m.message === msg.message);
+          const updated = [...prev];
+          updated[idx] = msg;
+          return updated;
         }
         console.log("✅ ChatWidget: Adding new message to state");
         return [...prev, msg];
@@ -177,11 +190,24 @@ export default function ChatWidget({ appointment, onClose }) {
       return;
     }
 
-    console.log("📤 ChatWidget: Sending message, length:", text.trim().length);
+    const trimmed = text.trim();
+    console.log("📤 ChatWidget: Sending message, length:", trimmed.length);
     setSending(true);
 
+    // Optimistic: show message immediately in the UI
+    const optimisticMsg = {
+      _id: `temp-${Date.now()}`,
+      senderId: myUserId,
+      senderRole: "doctor",
+      message: trimmed,
+      createdAt: new Date().toISOString(),
+      isRead: false,
+      _optimistic: true,
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+
     // Send message using helper function
-    sendChatMessage(appointmentId, text.trim());
+    sendChatMessage(appointmentId, trimmed);
 
     // Stop typing indicator
     emitStopTyping(appointmentId);
@@ -189,7 +215,7 @@ export default function ChatWidget({ appointment, onClose }) {
 
     setText("");
     setSending(false);
-    console.log("✅ ChatWidget: Message sent (optimistic), cleared input");
+    console.log("✅ ChatWidget: Message sent, cleared input");
   }, [text, sending, appointmentId, connected]);
 
   const handleKey = (e) => {

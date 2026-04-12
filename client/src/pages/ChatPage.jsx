@@ -29,7 +29,7 @@ export default function ChatPage() {
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  const currentUserRole = currentUser?.role || "patient";
+  const currentUserRole = localStorage.getItem("role") || currentUser?.role || "patient";
 
   // Fetch appointment to get other-party info and doctor name
   useEffect(() => {
@@ -82,10 +82,18 @@ export default function ChatPage() {
       console.log("✅ ChatPage: Received new_message:", message);
       setMessages((prev) => {
         if (prev.some((m) => m._id === message._id)) return prev;
+        // Replace optimistic message with server-confirmed one
+        const idx = prev.findIndex((m) => m._optimistic && m.message === message.message);
+        if (idx !== -1) {
+          const updated = [...prev];
+          updated[idx] = message;
+          return updated;
+        }
         return [...prev, message];
       });
-      if (currentUser) {
-        markAsRead(id, currentUser._id)
+      const userId = localStorage.getItem("userId");
+      if (userId) {
+        markAsRead(id, userId)
           .then(() => console.log("✅ Messages marked as read"))
           .catch((err) => console.warn("⚠️ Failed to mark as read:", err));
       }
@@ -146,17 +154,29 @@ export default function ChatPage() {
   }, [id, currentUser]);
 
   const handleSend = (text) => {
-    if (!currentUser || !connected || !text.trim()) {
+    if (!connected || !text.trim()) {
       console.warn(
-        "Cannot send: currentUser=",
-        !!currentUser,
-        "connected=",
+        "Cannot send: connected=",
         connected,
         "text=",
         !!text.trim(),
       );
       return;
     }
+    const role = localStorage.getItem("role") || currentUser?.role || "patient";
+    const userId = localStorage.getItem("userId");
+
+    // Optimistic: show message immediately
+    const optimisticMsg = {
+      _id: `temp-${Date.now()}`,
+      senderId: userId,
+      senderRole: role,
+      message: text.trim(),
+      createdAt: new Date().toISOString(),
+      _optimistic: true,
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+
     sendChatMessage(id, text.trim());
     emitStopTyping(id);
     clearTimeout(typingTimeoutRef.current);
@@ -254,7 +274,7 @@ export default function ChatPage() {
         <ChatInput
           onSend={handleSend}
           onTyping={handleTyping}
-          disabled={!currentUser || !connected}
+          disabled={!connected}
         />
       </div>
     </div>
