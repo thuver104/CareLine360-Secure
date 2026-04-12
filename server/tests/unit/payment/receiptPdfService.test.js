@@ -45,6 +45,7 @@ describe("Receipt PDF Service", () => {
 
   describe("uploadReceiptBuffer", () => {
     it("should upload buffer and return fileUrl and publicId", async () => {
+      process.env.CLOUDINARY_CLOUD_NAME = "test-cloud";
       const mockBuffer = Buffer.from("fake-pdf-content");
       const result = await uploadReceiptBuffer(mockBuffer);
 
