@@ -30,7 +30,11 @@ const getAllUsers = async (req, res, next) => {
     const search = req.query.search || "";
     const role = req.query.role || "all";
 
-    const result = await serviceGetAllUsers(page, limit, search, role);
+    // Sanitize pagination values
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(Math.max(1, limit), 100); // cap at 100
+
+    const result = await serviceGetAllUsers(safePage, safeLimit, search, role);
     return res.status(result.status).json({ success: true, data: result.data });
   } catch (error) {
     next(error);
@@ -48,6 +52,14 @@ const toggleUserStatus = async (req, res, next) => {
 
 const deleteUser = async (req, res, next) => {
   try {
+    // Prevent admin from deleting their own account
+    if (req.params.id === req.user.userId.toString()) {
+      return res.status(400).json({
+        success: false,
+        data: { message: "Cannot delete your own admin account" },
+      });
+    }
+
     const result = await serviceDeleteUser(req.params.id);
     return res.status(result.status).json({ success: true, data: result.data });
   } catch (error) {
@@ -66,10 +78,7 @@ const getStats = async (req, res, next) => {
 
 const patchUserStatus = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty())
-      return res.status(400).json({ errors: errors.array() });
-
+    // Validation now handled by adminValidator + validateRequest middleware
     const result = await updateUserStatus({
       userId: req.params.id,
       status: req.body.status,
@@ -82,10 +91,7 @@ const patchUserStatus = async (req, res, next) => {
 
 const postCreateUser = async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty())
-      return res.status(400).json({ errors: errors.array() });
-
+    // Validation now handled by adminValidator + validateRequest middleware
     const result = await serviceCreateUser(req.body);
     return res.status(result.status).json({ success: true, data: result.data });
   } catch (error) {
@@ -136,15 +142,8 @@ const postResetPassword = async (req, res, next) => {
 
 const postGenerateReport = async (req, res, next) => {
   try {
+    // Validation now handled by adminValidator + validateRequest middleware
     const { category, fromDate, toDate } = req.body;
-    if (!category || !fromDate || !toDate) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          data: { message: "category, fromDate and toDate are required" },
-        });
-    }
     const result = await serviceGenerateReport({ category, fromDate, toDate });
     return res.status(result.status).json({ success: true, data: result.data });
   } catch (error) {

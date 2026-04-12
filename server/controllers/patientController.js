@@ -11,7 +11,7 @@ const { calcPatientProfileStrength } = require("../services/profileStrength");
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const getMyProfile = async (req, res) => {
+const getMyProfile = async (req, res, next) => {
   try {
     const userId = req.user.userId;
 
@@ -19,10 +19,10 @@ const getMyProfile = async (req, res) => {
       userId,
       $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }],
     });
-    if (!patient) return res.status(404).json({ message: "Profile not found" });
+    if (!patient) return res.status(404).json({ success: false, message: "Profile not found" });
 
     const user = await User.findById(userId).select("email isVerified role");
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
     // ✅ Document count (for now no doc module => 0)
     const docsCount = 0;
@@ -58,15 +58,17 @@ const getMyProfile = async (req, res) => {
       profileStrength, // ✅ includes score + breakdown + missing
     });
   } catch (e) {
-    return res.status(500).json({ message: "Server error" });
+    next(e);
   }
 };
 
-const updateMyProfile = async (req, res) => {
+const updateMyProfile = async (req, res, next) => {
   try {
     const userId = req.user.userId;
 
-    // ---------------- VALIDATION ----------------
+    // Validation is now handled by patientValidator + validateRequest middleware.
+    // This controller only handles the update logic.
+
     const {
       dob,
       gender,
@@ -81,170 +83,36 @@ const updateMyProfile = async (req, res) => {
       fullName,
     } = req.body;
 
-    // fullName basic check (optional)
-    if (fullName !== undefined) {
-      if (typeof fullName !== "string" || fullName.trim().length < 3) {
-        return res
-          .status(400)
-          .json({ message: "Full name must be at least 3 characters" });
-      }
-    }
-
-    // DOB validation
-    if (dob !== undefined && dob !== null && dob !== "") {
-      const d = new Date(dob);
-      if (Number.isNaN(d.getTime())) {
-        return res.status(400).json({ message: "Invalid date of birth" });
-      }
-      if (d > new Date()) {
-        return res.status(400).json({ message: "DOB cannot be in the future" });
-      }
-    }
-
-    // Gender validation
-    if (gender !== undefined) {
-      const allowed = ["male", "female", "other", ""];
-      if (!allowed.includes(gender)) {
-        return res.status(400).json({ message: "Invalid gender value" });
-      }
-    }
-
-    // NIC validation (Sri Lanka: 9 digits + V/X or 12 digits)
-    if (nic !== undefined && nic !== null && nic !== "") {
-      const nicStr = String(nic).trim();
-      const nicRegex = /^[0-9]{9}[vVxX]$|^[0-9]{12}$/;
-      if (!nicRegex.test(nicStr)) {
-        return res
-          .status(400)
-          .json({ message: "Invalid NIC format (123456789V or 200012345678)" });
-      }
-    }
-
-    // Address validation (if provided)
-    if (address !== undefined) {
-      if (typeof address !== "object" || Array.isArray(address)) {
-        return res.status(400).json({ message: "Address must be an object" });
-      }
-      if (
-        address.city !== undefined &&
-        String(address.city).trim().length === 0
-      ) {
-        return res.status(400).json({ message: "City cannot be empty" });
-      }
-      if (
-        address.district !== undefined &&
-        String(address.district).trim().length === 0
-      ) {
-        return res.status(400).json({ message: "District cannot be empty" });
-      }
-      if (
-        address.line1 !== undefined &&
-        String(address.line1).trim().length === 0
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Address line cannot be empty" });
-      }
-    }
-
-    // Emergency contact validation (if provided)
-    if (emergencyContact !== undefined) {
-      if (
-        typeof emergencyContact !== "object" ||
-        Array.isArray(emergencyContact)
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Emergency contact must be an object" });
-      }
-
-      if (
-        emergencyContact.phone !== undefined &&
-        emergencyContact.phone !== null &&
-        emergencyContact.phone !== ""
-      ) {
-        const p = String(emergencyContact.phone).replace(/\s+/g, "");
-        // basic Sri Lanka-ish pattern: allow +94 / 0 / plain 9–10 digits
-        const phoneRegex = /^(?:\+94|0)?\d{9}$/;
-        if (!phoneRegex.test(p)) {
-          return res
-            .status(400)
-            .json({ message: "Invalid emergency phone number" });
-        }
-      }
-    }
-
-    // Blood group validation
-    if (bloodGroup !== undefined && bloodGroup !== null && bloodGroup !== "") {
-      const bg = String(bloodGroup).trim();
-      const bgRegex = /^(A|B|AB|O)[+-]$/i;
-      if (!bgRegex.test(bg)) {
-        return res
-          .status(400)
-          .json({ message: "Invalid blood group (A+, O-, AB+)" });
-      }
-    }
-
-    // Arrays validation
-    if (allergies !== undefined && !Array.isArray(allergies)) {
-      return res.status(400).json({ message: "Allergies must be an array" });
-    }
-    if (chronicConditions !== undefined && !Array.isArray(chronicConditions)) {
-      return res
-        .status(400)
-        .json({ message: "Chronic conditions must be an array" });
-    }
-
-    // Height/Weight validation
-    if (heightCm !== undefined) {
-      const h = Number(heightCm);
-      if (Number.isNaN(h) || h < 30 || h > 250) {
-        return res
-          .status(400)
-          .json({ message: "Height must be between 30 and 250 cm" });
-      }
-    }
-    if (weightKg !== undefined) {
-      const w = Number(weightKg);
-      if (Number.isNaN(w) || w < 2 || w > 300) {
-        return res
-          .status(400)
-          .json({ message: "Weight must be between 2 and 300 kg" });
-      }
-    }
-    // ---------------- END VALIDATION ----------------
-
     const update = {};
 
     // Basic fields
-    if (req.body.fullName !== undefined) update.fullName = req.body.fullName;
-    if (req.body.dob !== undefined) update.dob = req.body.dob;
-    if (req.body.gender !== undefined) update.gender = req.body.gender;
-    if (req.body.nic !== undefined) update.nic = req.body.nic;
+    if (fullName !== undefined) update.fullName = fullName;
+    if (dob !== undefined) update.dob = dob;
+    if (gender !== undefined) update.gender = gender;
+    if (nic !== undefined) update.nic = nic;
 
     // Nested address
-    if (req.body.address) {
-      update["address.district"] = req.body.address.district;
-      update["address.city"] = req.body.address.city;
-      update["address.line1"] = req.body.address.line1;
+    if (address) {
+      update["address.district"] = address.district;
+      update["address.city"] = address.city;
+      update["address.line1"] = address.line1;
     }
 
     // Nested emergency contact
-    if (req.body.emergencyContact) {
-      update["emergencyContact.name"] = req.body.emergencyContact.name;
-      update["emergencyContact.phone"] = req.body.emergencyContact.phone;
+    if (emergencyContact) {
+      update["emergencyContact.name"] = emergencyContact.name;
+      update["emergencyContact.phone"] = emergencyContact.phone;
       update["emergencyContact.relationship"] =
-        req.body.emergencyContact.relationship;
+        emergencyContact.relationship;
     }
 
     // Medical
-    if (req.body.bloodGroup !== undefined)
-      update.bloodGroup = req.body.bloodGroup;
-    if (req.body.allergies !== undefined) update.allergies = req.body.allergies;
-    if (req.body.chronicConditions !== undefined)
-      update.chronicConditions = req.body.chronicConditions;
-    if (req.body.heightCm !== undefined) update.heightCm = req.body.heightCm;
-    if (req.body.weightKg !== undefined) update.weightKg = req.body.weightKg;
+    if (bloodGroup !== undefined) update.bloodGroup = bloodGroup;
+    if (allergies !== undefined) update.allergies = allergies;
+    if (chronicConditions !== undefined)
+      update.chronicConditions = chronicConditions;
+    if (heightCm !== undefined) update.heightCm = heightCm;
+    if (weightKg !== undefined) update.weightKg = weightKg;
 
     const patient = await Patient.findOneAndUpdate(
       {
@@ -255,31 +123,28 @@ const updateMyProfile = async (req, res) => {
       { new: true, runValidators: true },
     );
 
-    if (!patient) return res.status(404).json({ message: "Profile not found" });
+    if (!patient) return res.status(404).json({ success: false, message: "Profile not found" });
 
     return res.json({ message: "Profile updated successfully", patient });
   } catch (e) {
     if (e?.name === "ValidationError") {
-      return res.status(400).json({ message: e.message });
+      const messages = Object.values(e.errors).map((err) => err.message);
+      return res.status(400).json({ success: false, message: messages.join(", ") });
     }
-    return res.status(500).json({ message: "Server error" });
+    next(e);
   }
 };
 
-const uploadAvatar = async (req, res) => {
+const uploadAvatar = async (req, res, next) => {
   try {
-    console.log("AVATAR upload hit ✅");
-    console.log("req.file =", req.file); // ✅ add this
-
     const userId = req.user.userId;
 
     if (!req.file?.path) {
-      return res.status(400).json({ message: "No image uploaded" });
+      return res.status(400).json({ success: false, message: "No image uploaded" });
     }
 
     // multer-storage-cloudinary gives secure URL in req.file.path
     const avatarUrl = req.file.path;
-    console.log("avatarUrl =", avatarUrl); // ✅ add this
 
     const patient = await Patient.findOneAndUpdate(
       {
@@ -290,12 +155,11 @@ const uploadAvatar = async (req, res) => {
       { returnDocument: "after", runValidators: true },
     );
 
-    if (!patient) return res.status(404).json({ message: "Profile not found" });
+    if (!patient) return res.status(404).json({ success: false, message: "Profile not found" });
 
     return res.json({ message: "Avatar updated", avatarUrl });
   } catch (e) {
-    console.error("UPLOAD AVATAR ERROR ❌", e);
-    return res.status(500).json({ message: "Server error" });
+    next(e);
   }
 };
 
@@ -321,7 +185,7 @@ const removeAvatar = async (req, res) => {
   }
 };
 
-const deactivateMyAccount = async (req, res) => {
+const deactivateMyAccount = async (req, res, next) => {
   try {
     const userId = req.user.userId;
 
@@ -338,7 +202,7 @@ const deactivateMyAccount = async (req, res) => {
       { returnDocument: "after" }, // mongoose v7+ (instead of { new: true })
     );
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
     // 2) Soft delete patient profile (if exists)
     await Patient.findOneAndUpdate(
@@ -349,8 +213,7 @@ const deactivateMyAccount = async (req, res) => {
 
     return res.json({ message: "Account deactivated successfully" });
   } catch (e) {
-    console.error("DEACTIVATE ERROR:", e);
-    return res.status(500).json({ message: e.message || "Server error" });
+    next(e);
   }
 };
 
@@ -387,7 +250,7 @@ const reactivateAccount = async (req, res) => {
   }
 };
 
-const medicalRecord = async (req, res) => {
+const medicalRecord = async (req, res, next) => {
   try {
     const userId = req.user.userId;
 
@@ -398,7 +261,7 @@ const medicalRecord = async (req, res) => {
     });
 
     if (!patient)
-      return res.status(404).json({ message: "Patient profile not found" });
+      return res.status(404).json({ success: false, message: "Patient profile not found" });
 
     // 2) fetch medical records
     const histories = await MedicalRecord.find({
@@ -412,22 +275,21 @@ const medicalRecord = async (req, res) => {
 
     return res.json({ histories });
   } catch (e) {
-    console.error("MEDICAL HISTORY ERROR:", e);
-    return res.status(500).json({ message: "Server error" });
+    next(e);
   }
 };
 
-const explainMedicalText = async (req, res) => {
+const explainMedicalText = async (req, res, next) => {
   try {
     const { text, language } = req.body;
 
     if (!text) {
-      return res.status(400).json({ message: "Text is required" });
+      return res.status(400).json({ success: false, message: "Text is required" });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ message: "Gemini API key not configured" });
+      return res.status(500).json({ success: false, message: "Gemini API key not configured" });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -460,8 +322,6 @@ const explainMedicalText = async (req, res) => {
       explanation,
     });
   } catch (error) {
-    console.error("GEMINI ERROR:", error?.message || error);
-
     // Detect quota / rate-limit errors (HTTP 429 from Google's API)
     const errMsg = error?.message || "";
     const isQuota =
@@ -472,12 +332,14 @@ const explainMedicalText = async (req, res) => {
 
     if (isQuota) {
       return res.status(429).json({
+        success: false,
         message: "AI quota exceeded. Please try again in a few minutes.",
         detail: errMsg,
       });
     }
 
     return res.status(500).json({
+      success: false,
       message: "AI service error",
       detail: errMsg || "Unknown error",
     });
@@ -488,7 +350,7 @@ const explainMedicalText = async (req, res) => {
  * GET /api/patient/me/medical-records
  * Patient fetch their own medical records
  */
-const getMyMedicalRecords = async (req, res) => {
+const getMyMedicalRecords = async (req, res, next) => {
   try {
     const patientId = req.user.userId; // from authMiddleware
 
@@ -499,9 +361,7 @@ const getMyMedicalRecords = async (req, res) => {
 
     return res.json({ count: records.length, records });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ message: "Failed to fetch medical records", error: err.message });
+    next(err);
   }
 };
 
@@ -509,7 +369,7 @@ const getMyMedicalRecords = async (req, res) => {
  * GET /api/patient/me/prescriptions
  * Patient fetch their own prescriptions
  */
-const getMyPrescriptions = async (req, res) => {
+const getMyPrescriptions = async (req, res, next) => {
   try {
     const patientId = req.user.userId;
 
@@ -519,9 +379,7 @@ const getMyPrescriptions = async (req, res) => {
 
     return res.json({ count: prescriptions.length, prescriptions });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ message: "Failed to fetch prescriptions", error: err.message });
+    next(err);
   }
 };
 
@@ -529,7 +387,7 @@ const getMyPrescriptions = async (req, res) => {
  * GET /api/patient/doctors
  * Patient fetch all doctors (users with role doctor)
  */
-const getAllDoctorsForPatient = async (req, res) => {
+const getAllDoctorsForPatient = async (req, res, next) => {
   try {
     const { q = "" } = req.query;
 
@@ -550,26 +408,30 @@ const getAllDoctorsForPatient = async (req, res) => {
 
     return res.json(doctors);
   } catch (e) {
-    return res.status(500).json({ message: "Failed to fetch doctors" });
+    next(e);
   }
 };
 
-const getDoctorDetailsForPatient = async (req, res) => {
+const getDoctorDetailsForPatient = async (req, res, next) => {
   try {
     const doc = await Doctor.findOne({
       _id: req.params.id,
       isDeleted: { $ne: true },
     });
 
-    if (!doc) return res.status(404).json({ message: "Doctor not found" });
+    if (!doc) return res.status(404).json({ success: false, message: "Doctor not found" });
 
     return res.json(doc);
   } catch (e) {
-    return res.status(500).json({ message: "Failed to fetch doctor details" });
+    // Handle invalid ObjectId in params gracefully
+    if (e.name === "CastError") {
+      return res.status(400).json({ success: false, message: "Invalid doctor ID format" });
+    }
+    next(e);
   }
 };
 
-const getAllHospitalsForPatient = async (req, res) => {
+const getAllHospitalsForPatient = async (req, res, next) => {
   try {
     const { q = "" } = req.query;
 
@@ -589,11 +451,11 @@ const getAllHospitalsForPatient = async (req, res) => {
 
     res.json(hospitals);
   } catch (e) {
-    res.status(500).json({ message: "Failed to fetch hospitals" });
+    next(e);
   }
 };
 
-const getHospitalDetailsForPatient = async (req, res) => {
+const getHospitalDetailsForPatient = async (req, res, next) => {
   try {
     const hospital = await Hospital.findOne({
       _id: req.params.id,
@@ -601,19 +463,24 @@ const getHospitalDetailsForPatient = async (req, res) => {
     }).select("name address contact lat lng isActive");
 
     if (!hospital)
-      return res.status(404).json({ message: "Hospital not found" });
+      return res.status(404).json({ success: false, message: "Hospital not found" });
 
     res.json(hospital);
   } catch (e) {
-    res.status(500).json({ message: "Failed to fetch hospital details" });
+    // Handle invalid ObjectId in params gracefully
+    if (e.name === "CastError") {
+      return res.status(400).json({ success: false, message: "Invalid hospital ID format" });
+    }
+    next(e);
   }
 };
 
 const createEmergency = async (req, res, next) => {
   try {
+    const emergencyService = require("../services/emergencyService");
     const emergency = await emergencyService.createEmergency({
       ...req.body,
-      patient: req.user.id, // 👈 take patient from token
+      patient: req.user.userId, // 👈 take patient from token
     });
 
     res.status(201).json({ success: true, data: emergency });

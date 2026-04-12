@@ -1,5 +1,13 @@
 const express = require("express");
 const { authMiddleware, roleMiddleware } = require("../middleware/auth");
+const validateRequest = require("../middleware/validateRequest");
+
+const {
+  updateProfileRules,
+  explainMedicalTextRules,
+  mongoIdParam,
+} = require("../validators/patientValidator");
+
 const { 
   getMyProfile , 
   updateMyProfile , 
@@ -31,7 +39,9 @@ router.get(
 router.patch(
   "/me", 
   authMiddleware, 
-  roleMiddleware(["patient"]), 
+  roleMiddleware(["patient"]),
+  updateProfileRules,
+  validateRequest,
   updateMyProfile
 );
 
@@ -60,11 +70,13 @@ router.patch(
 router.post(
   "/me/ai-explain", 
   authMiddleware, 
-  roleMiddleware(["patient"]), 
+  roleMiddleware(["patient"]),
+  explainMedicalTextRules,
+  validateRequest,
   explainMedicalText
 );
 
-// ✅ NEW: Patient view own medical records
+// ✅ Patient view own medical records
 router.get(
   "/me/medical-record", 
   authMiddleware, 
@@ -72,7 +84,7 @@ router.get(
   getMyMedicalRecords
 );
 
-// ✅ NEW: Patient view own prescriptions
+// ✅ Patient view own prescriptions
 router.get(
   "/me/prescription", 
   authMiddleware, 
@@ -80,7 +92,7 @@ router.get(
   getMyPrescriptions
 );
 
-// ✅ NEW: Patient get all doctors list
+// ✅ Patient get all doctors list
 router.get(
   "/doctor", 
   authMiddleware, 
@@ -100,6 +112,8 @@ router.get(
   "/hospital/:id",
   authMiddleware, 
   roleMiddleware(["patient"]),
+  mongoIdParam("id"),
+  validateRequest,
   getHospitalDetailsForPatient
 );
 
@@ -108,6 +122,8 @@ router.get(
   "/doctor/:id",
   authMiddleware, 
   roleMiddleware(["patient"]),
+  mongoIdParam("id"),
+  validateRequest,
   getDoctorDetailsForPatient
 );
 

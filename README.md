@@ -398,6 +398,30 @@ npm test
 
 **Current status: 190 tests passing across 16 test suites.**
 
+### Doctor Dashboard Module
+
+| Command                           | Description                                       |
+| --------------------------------- | ------------------------------------------------- |
+| `npm run test:doctor`             | Run all doctor tests (unit + integration)         |
+| `npm run test:doctor:unit`        | Doctor unit tests only (service + controller)     |
+| `npm run test:doctor:integration` | Doctor integration tests only (API endpoints)     |
+| `npm run test:doctor:perf`        | Artillery.io performance / load test              |
+| `npm run test:doctor:perf:report` | Performance test with JSON report generation      |
+
+> **Note:** For performance tests, the server must be running (`npm run dev`) and you need to replace `<DOCTOR_JWT_TOKEN>` in `tests/artillery/doctor-load-test.yml` with a valid JWT.
+
+### Test Summary (Doctor Dashboard)
+
+| Type                 | Tests        | Framework                            |
+| -------------------- | ------------ | ------------------------------------ |
+| Unit – Service       | 39           | Jest + MongoMemoryServer             |
+| Unit – Controller    | 24           | Jest (mocked service layer)          |
+| Integration – API    | 35           | Jest + Supertest + MongoMemoryServer |
+| Performance          | 12 scenarios | Artillery.io (4 load phases)         |
+| **Total**            | **98**       |                                      |
+
+**Test coverage includes:** appointment controller/service/validator, payment controller/service/validator, auth middleware, error handler, chat integration, doctor dashboard (profile, availability, appointments, patients, medical records, prescriptions, ratings, analytics, meetings, account management), and Artillery load testing.
+
 ### Performance Testing
 
 Performance tests use [Artillery.io](https://artillery.io) to evaluate API response times under load.
@@ -429,21 +453,21 @@ artillery run tests/artillery/load-test.yml
 
 **Load test configuration** (`tests/artillery/load-test.yml`):
 
-| Phase     | Duration | Arrival Rate | Description                    |
-| --------- | -------- | ------------ | ------------------------------ |
-| Warm up   | 30s      | 5 req/s      | Baseline load                  |
-| Ramp up   | 60s      | 20 req/s     | Stress test with increased load|
-| Cool down | 30s      | 5 req/s      | Recovery phase                 |
+| Phase     | Duration | Arrival Rate | Description                     |
+| --------- | -------- | ------------ | ------------------------------- |
+| Warm up   | 30s      | 5 req/s      | Baseline load                   |
+| Ramp up   | 60s      | 20 req/s     | Stress test with increased load |
+| Cool down | 30s      | 5 req/s      | Recovery phase                  |
 
 **Tested scenarios (15 weighted scenarios):**
 
-| Category | Scenarios | Auth |
-| -------- | --------- | ---- |
-| Public | List users, List doctors, List hospitals | No |
-| Patient: Appointments | List, Stats, Create & Cancel, Filter by status | JWT (patient) |
-| Patient: Chat | Message history, Unread count, Inbox | JWT (patient) |
-| Patient: Payments | Get payment by appointment | JWT (patient) |
-| Doctor | List appointments, Dashboard, List patients | JWT (doctor) |
+| Category              | Scenarios                                      | Auth         |
+| --------------------- | ---------------------------------------------- | ------------ |
+| Public                | List users, List doctors, List hospitals       | No           |
+| Patient: Appointments | List, Stats, Create & Cancel, Filter by status | JWT (patient)|
+| Patient: Chat         | Message history, Unread count, Inbox           | JWT (patient)|
+| Patient: Payments     | Get payment by appointment                     | JWT (patient)|
+| Doctor                | List appointments, Dashboard, List patients    | JWT (doctor) |
 
 ### Test Environment Configuration
 

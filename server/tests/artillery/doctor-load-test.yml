@@ -1,0 +1,166 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# PERFORMANCE TEST – Doctor Dashboard API (Artillery.io)
+#
+# This config tests the Doctor Dashboard API under various load levels:
+#   Phase 1 — Warm-up:   5 req/s for 30s
+#   Phase 2 — Ramp up:  20 req/s for 60s
+#   Phase 3 — Peak:     50 req/s for 30s  
+#   Phase 4 — Cool down: 5 req/s for 30s
+#
+# INSTRUCTIONS:
+#   1. Start server:   npm run dev
+#   2. Login as doctor manually, copy the accessToken
+#   3. Replace <DOCTOR_JWT_TOKEN> below with your real token
+#   4. Run:  npx artillery run tests/artillery/doctor-load-test.yml
+#   5. Or with report: npx artillery run --output doctor-report.json tests/artillery/doctor-load-test.yml
+#                      npx artillery report doctor-report.json
+# ──────────────────────────────────────────────────────────────────────────────
+
+config:
+  target: "http://localhost:1111"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 60
+      arrivalRate: 20
+      name: "Ramp up load"
+    - duration: 30
+      arrivalRate: 50
+      name: "Peak load"
+    - duration: 30
+      arrivalRate: 5
+      name: "Cool down"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer <DOCTOR_JWT_TOKEN>"
+
+  # Performance thresholds – fail if not met
+  ensure:
+    thresholds:
+      - http.response_time.p95: 500    # 95th percentile < 500ms
+      - http.response_time.p99: 1000   # 99th percentile < 1000ms
+
+scenarios:
+  # ── Public endpoint (no auth) ────────────────────────────────────────────
+  - name: "Public – List Doctors"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/doctor/public?page=1&limit=10"
+          expect:
+            - statusCode: 200
+
+  # ── Dashboard & Analytics (high frequency) ────────────────────────────────
+  - name: "Dashboard Stats"
+    weight: 20
+    flow:
+      - get:
+          url: "/api/doctor/dashboard"
+          expect:
+            - statusCode: 200
+
+  - name: "Analytics"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/doctor/analytics"
+          expect:
+            - statusCode: 200
+
+  # ── Profile ──────────────────────────────────────────────────────────────
+  - name: "Get Profile"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/doctor/profile"
+          expect:
+            - statusCode: 200
+
+  # ── Appointments ─────────────────────────────────────────────────────────
+  - name: "List Appointments"
+    weight: 20
+    flow:
+      - get:
+          url: "/api/doctor/appointments?page=1&limit=10"
+          expect:
+            - statusCode: 200
+
+  - name: "List Appointments – Filtered"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/doctor/appointments?status=pending&page=1&limit=10"
+          expect:
+            - statusCode: 200
+
+  # ── Patients ─────────────────────────────────────────────────────────────
+  - name: "List Patients"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/doctor/patients?page=1&limit=6"
+          expect:
+            - statusCode: 200
+
+  # ── Availability ─────────────────────────────────────────────────────────
+  - name: "Get Availability"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/doctor/availability"
+          expect:
+            - statusCode: 200
+
+  # ── Prescriptions ────────────────────────────────────────────────────────
+  - name: "List Prescriptions"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/doctor/prescriptions?page=1&limit=10"
+          expect:
+            - statusCode: 200
+
+  # ── Ratings ──────────────────────────────────────────────────────────────
+  - name: "Get Ratings"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/doctor/ratings?page=1&limit=10"
+          expect:
+            - statusCode: 200
+
+  # ── Meetings ─────────────────────────────────────────────────────────────
+  - name: "List Meetings"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/doctor/meetings"
+          expect:
+            - statusCode: 200
+
+  # ── Mixed Flow (realistic user journey) ─────────────────────────────────
+  - name: "Full User Flow – Dashboard → Appointments → Patient"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/doctor/dashboard"
+          expect:
+            - statusCode: 200
+      - think: 1
+      - get:
+          url: "/api/doctor/appointments?page=1&limit=10"
+          expect:
+            - statusCode: 200
+      - think: 1
+      - get:
+          url: "/api/doctor/patients?page=1&limit=6"
+          expect:
+            - statusCode: 200
+      - think: 1
+      - get:
+          url: "/api/doctor/prescriptions?page=1&limit=10"
+          expect:
+            - statusCode: 200

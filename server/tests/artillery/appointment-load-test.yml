@@ -1,0 +1,111 @@
+config:
+  target: "{{ baseUrl }}"
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 25
+      name: "Ramp up load"
+    - duration: 60
+      arrivalRate: 50
+      name: "Stress test"
+  processor: "./performance-processor.js"
+  variables:
+    patientToken: ""
+    doctorToken: ""
+    appointmentId: ""
+
+scenarios:
+  - name: "Appointment Module Load Test"
+    flow:
+      # Patient Login
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "kamala_yar"
+            password: "Password@123"
+          capture:
+            json: "$.token"
+            as: "patientToken"
+          expect:
+            - statusCode: 200
+
+      # Doctor Login
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "srivasu@gov.com"
+            password: "Password@123"
+          capture:
+            json: "$.token"
+            as: "doctorToken"
+          expect:
+            - statusCode: 200
+
+      # Get All Appointments
+      - get:
+          url: "/api/appointments?page=1&limit=10&status=pending"
+          headers:
+            Authorization: "Bearer {{ patientToken }}"
+          expect:
+            - statusCode: 200
+
+      # Create Appointment
+      - post:
+          url: "/api/appointments"
+          json:
+            doctor: "507f1f77bcf86cd799439013"
+            date: "2024-02-15T00:00:00.000Z"
+            time: "10:00 AM"
+            consultationType: "video"
+            symptoms: "Headache"
+            priority: "high"
+          headers:
+            Authorization: "Bearer {{ patientToken }}"
+          capture:
+            json: "$._id"
+            as: "appointmentId"
+          expect:
+            - statusCode: 201
+
+      # Get Appointment Details
+      - get:
+          url: "/api/appointments/{{ appointmentId }}"
+          headers:
+            Authorization: "Bearer {{ patientToken }}"
+          expect:
+            - statusCode: 200
+
+      # Update Appointment Status (Doctor)
+      - patch:
+          url: "/api/appointments/{{ appointmentId }}/status"
+          json:
+            status: "confirmed"
+          headers:
+            Authorization: "Bearer {{ doctorToken }}"
+          expect:
+            - statusCode: 200
+
+      # Reschedule Appointment
+      - patch:
+          url: "/api/appointments/{{ appointmentId }}/reschedule"
+          json:
+            date: "2024-02-20T00:00:00.000Z"
+            time: "02:00 PM"
+            reason: "Patient requested reschedule"
+          headers:
+            Authorization: "Bearer {{ patientToken }}"
+          expect:
+            - statusCode: 200
+
+      # Get Appointments List (paginated)
+      - get:
+          url: "/api/appointments?page=2&limit=10&sortBy=date&sortOrder=asc"
+          headers:
+            Authorization: "Bearer {{ patientToken }}"
+          expect:
+            - statusCode: 200
+
+      # Think time between requests
+      - think: 5

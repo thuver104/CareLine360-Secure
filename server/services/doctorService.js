@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Doctor = require("../models/Doctor");
 const User = require("../models/User");
 const Appointment = require("../models/Appointment");
@@ -8,6 +9,10 @@ const Patient = require("../models/Patient");
 const Counter = require("../models/Counter");
 const { uploadBase64Image, deleteCloudinaryFile } = require("./uploadService");
 const emailService = require("./emailService");
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -43,6 +48,15 @@ const createDoctorProfile = async ({
   if (user.status !== "ACTIVE")
     return { status: 403, data: { message: "Account not approved yet" } };
 
+  // Defensive value checks (belt-and-suspenders — validators catch most of these)
+  const safeExperience = Number(experience) || 0;
+  if (safeExperience < 0 || safeExperience > 60)
+    return { status: 400, data: { message: "Experience must be between 0 and 60 years" } };
+
+  const safeFee = Number(consultationFee) || 0;
+  if (safeFee < 0)
+    return { status: 400, data: { message: "Consultation fee cannot be negative" } };
+
   const doctorId = await getNextDoctorId();
 
   const doctor = await Doctor.create({
@@ -51,10 +65,10 @@ const createDoctorProfile = async ({
     fullName: fullName || "",
     specialization: specialization || "",
     qualifications: qualifications || [],
-    experience: experience || 0,
+    experience: safeExperience,
     bio: bio || "",
     licenseNumber: licenseNumber || "",
-    consultationFee: consultationFee || 0,
+    consultationFee: safeFee,
     phone: phone || "",
   });
 
@@ -103,6 +117,20 @@ const updateDoctorProfile = async ({ userId, updates }) => {
   const sanitized = {};
   for (const key of allowed) {
     if (updates[key] !== undefined) sanitized[key] = updates[key];
+  }
+
+  // Defensive numeric checks
+  if (sanitized.experience !== undefined) {
+    const exp = Number(sanitized.experience);
+    if (Number.isNaN(exp) || exp < 0 || exp > 60)
+      return { status: 400, data: { message: "Experience must be between 0 and 60 years" } };
+    sanitized.experience = exp;
+  }
+  if (sanitized.consultationFee !== undefined) {
+    const fee = Number(sanitized.consultationFee);
+    if (Number.isNaN(fee) || fee < 0)
+      return { status: 400, data: { message: "Consultation fee cannot be negative" } };
+    sanitized.consultationFee = fee;
   }
 
   const doctor = await Doctor.findOneAndUpdate(
@@ -220,6 +248,29 @@ const getAvailability = async ({ userId }) => {
 const addAvailabilitySlots = async ({ userId, slots }) => {
   const doctor = await Doctor.findOne({ userId, isDeleted: false });
   if (!doctor) return { status: 404, data: { message: "Doctor not found" } };
+
+  // Validate each slot and check for duplicates against existing slots
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i];
+    if (!dateRegex.test(s.date))
+      return { status: 400, data: { message: `Slot ${i + 1}: date must be in YYYY-MM-DD format` } };
+    if (!timeRegex.test(s.startTime))
+      return { status: 400, data: { message: `Slot ${i + 1}: startTime must be in HH:mm format` } };
+    if (!timeRegex.test(s.endTime))
+      return { status: 400, data: { message: `Slot ${i + 1}: endTime must be in HH:mm format` } };
+    if (s.startTime >= s.endTime)
+      return { status: 400, data: { message: `Slot ${i + 1}: endTime must be after startTime` } };
+
+    // Check for duplicate slot (same date + startTime)
+    const isDuplicate = doctor.availabilitySlots.some(
+      (existing) => existing.date === s.date && existing.startTime === s.startTime,
+    );
+    if (isDuplicate)
+      return { status: 409, data: { message: `Slot ${i + 1}: a slot already exists for ${s.date} at ${s.startTime}` } };
+  }
 
   const newSlots = slots.map((s) => ({
     date: s.date,
@@ -572,6 +623,12 @@ const createMedicalRecord = async ({ userId, data }) => {
     prescriptions,
   } = data;
 
+  // Validate ObjectIds before DB query
+  if (!patientId || !isValidObjectId(patientId))
+    return { status: 400, data: { message: "Invalid or missing patient ID" } };
+  if (appointmentId && !isValidObjectId(appointmentId))
+    return { status: 400, data: { message: "Invalid appointment ID format" } };
+
   const patient = await Patient.findById(patientId);
   if (!patient) return { status: 404, data: { message: "Patient not found" } };
 
@@ -665,6 +722,16 @@ const savePrescription = async ({ userId, data }) => {
 
   const { medicalRecordId, patientId, medicines, notes, fileUrl, publicId } =
     data;
+
+  // Validate ObjectIds before DB operations
+  if (!patientId || !isValidObjectId(patientId))
+    return { status: 400, data: { message: "Invalid or missing patient ID" } };
+  if (medicalRecordId && !isValidObjectId(medicalRecordId))
+    return { status: 400, data: { message: "Invalid medical record ID format" } };
+
+  // Verify patient exists
+  const patient = await Patient.findById(patientId);
+  if (!patient) return { status: 404, data: { message: "Patient not found" } };
 
   const prescription = await Prescription.create({
     medicalRecordId: medicalRecordId || null,

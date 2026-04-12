@@ -1,1108 +1,1135 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import { motion, useInView } from "motion/react";
 import {
-  FaUserMd,
-  FaCalendarCheck,
-  FaHeartbeat,
-  FaClinicMedical,
-  FaArrowRight,
-  FaPhoneAlt,
-  FaShieldAlt,
-  FaStar,
-  FaMapMarkerAlt,
-  FaEnvelope,
-  FaFacebookF,
-  FaInstagram,
-  FaLinkedinIn,
-  FaStethoscope,
-  FaTimes,
-} from "react-icons/fa";
-import PatientNavbar from "./patient/components/PatientNavbar";
+  Calendar,
+  Video,
+  Shield,
+  Heart,
+  Users,
+  Clock,
+  ArrowRight,
+  ChevronDown,
+  Star,
+  Activity,
+  Stethoscope,
+  MessageCircle,
+} from "lucide-react";
 
+import BlurText from "../components/animations/BlurText";
+import ScrollVelocity from "../components/animations/ScrollVelocity";
+import FallBeamBackground from "../components/animations/FallBeamBackground";
+import ThreeDSlider from "../components/animations/ThreeDSlider";
+
+import logo from "../assets/logo.png";
+import doctorImg1 from "../assets/images/landing page doctor img 11.png";
+import doctorImg2 from "../assets/images/doctor img 22.png";
+
+// Carousel images for 3D slider
+import carImg1 from "../assets/carousel/img1.png";
+import carImg2 from "../assets/carousel/img2.png";
+import carImg3 from "../assets/carousel/img3.png";
+import carImg4 from "../assets/carousel/img4.png";
+import carImg5 from "../assets/carousel/img5.png";
+import carImg6 from "../assets/carousel/img6.png";
+import carImg7 from "../assets/carousel/img7.png";
+import carImg8 from "../assets/carousel/img8.png";
+import carImg9 from "../assets/carousel/img9.png";
+import carImg10 from "../assets/carousel/img10.png";
+
+import "./LandingPage.css";
+
+/* ════════════════════════════════════════════════════════
+   SECTION WRAPPER — fade-up on scroll entry
+════════════════════════════════════════════════════════ */
+function FadeSection({ children, className = "", delay = 0, id, ...rest }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-80px" });
+  return (
+    <motion.section
+      ref={ref}
+      id={id}
+      initial={{ opacity: 0, y: 40 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.8, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className={className}
+      {...rest}
+    >
+      {children}
+    </motion.section>
+  );
+}
+
+/* ════════════════════════════════════════════════════════
+   ANIMATED COUNTER
+════════════════════════════════════════════════════════ */
+function Counter({ target, suffix = "", duration = 2 }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+    let start = 0;
+    const end = parseInt(target, 10);
+    const step = Math.max(1, Math.floor(end / (duration * 60)));
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= end) {
+        setCount(end);
+        clearInterval(timer);
+      } else {
+        setCount(start);
+      }
+    }, 1000 / 60);
+    return () => clearInterval(timer);
+  }, [isInView, target, duration]);
+
+  return (
+    <span ref={ref} className="lp-stat-number">
+      {count.toLocaleString()}
+      {suffix}
+    </span>
+  );
+}
+
+/* ════════════════════════════════════════════════════════
+   FAQ ITEM
+════════════════════════════════════════════════════════ */
+function FaqItem({ question, answer }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="lp-faq-item py-5">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between text-left"
+        aria-expanded={open}
+      >
+        <span className="lp-faq-question text-sm md:text-base pr-4">
+          {question}
+        </span>
+        <span
+          className="flex-shrink-0 w-8 h-8 flex items-center justify-center border transition-all duration-500"
+          style={{
+            borderColor: open ? "#0d9488" : "rgba(26,26,26,0.2)",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        >
+          <ChevronDown size={14} />
+        </span>
+      </button>
+      <div
+        className="lp-faq-answer lp-sans text-sm leading-relaxed"
+        style={{
+          maxHeight: open ? "300px" : "0px",
+          opacity: open ? 1 : 0,
+          marginTop: open ? "1rem" : "0",
+          color: "#6C6863",
+        }}
+      >
+        {answer}
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════
+   MAIN LANDING PAGE
+════════════════════════════════════════════════════════ */
 export default function LandingPage() {
-  const navigate = useNavigate();
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [activeSection, setActiveSection] = useState("home");
 
-  const [doctors, setDoctors] = useState([]);
-  const [hospitals, setHospitals] = useState([]);
-  const [loadingDoctors, setLoadingDoctors] = useState(true);
-  const [loadingHospitals, setLoadingHospitals] = useState(true);
-  const [doctorError, setDoctorError] = useState("");
-  const [hospitalError, setHospitalError] = useState("");
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [selectedHospital, setSelectedHospital] = useState(null);
+  // Navigation items
+  const navItems = [
+    { id: "home", label: "Home" },
+    { id: "about", label: "About" },
+    { id: "features", label: "Features" },
+    { id: "faq", label: "FAQ" },
+  ];
 
+  // 3D Slider items using carousel images
+  const sliderItems = [
+    { title: "Patient Care", num: "01", imageUrl: carImg1 },
+    { title: "Expert Doctors", num: "02", imageUrl: carImg2 },
+    { title: "Appointments", num: "03", imageUrl: carImg3 },
+    { title: "AI Insights", num: "04", imageUrl: carImg4 },
+    { title: "Video Consult", num: "05", imageUrl: carImg5 },
+    { title: "Health Records", num: "06", imageUrl: carImg6 },
+    { title: "Lab Reports", num: "07", imageUrl: carImg7 },
+    { title: "Prescriptions", num: "08", imageUrl: carImg8 },
+    { title: "Live Chat", num: "09", imageUrl: carImg9 },
+    { title: "Dashboard", num: "10", imageUrl: carImg10 },
+  ];
 
-  const [showAllDoctors, setShowAllDoctors] = useState(false);
-  const [showAllHospitals, setShowAllHospitals] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-  const DOCTOR_LIMIT = 3;
-  const HOSPITAL_LIMIT = 3;
+  // Active section tracking via scroll position
+  useEffect(() => {
+    const sectionIds = ["home", "about", "features", "faq"];
+    let isClickScrolling = false;
 
-  const testimonials = [
+    const handleScroll = () => {
+      if (isClickScrolling) return;
+
+      const scrollY = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const docHeight = document.documentElement.scrollHeight;
+
+      // If scrolled to bottom, activate last section
+      if (scrollY + windowHeight >= docHeight - 50) {
+        setActiveSection(sectionIds[sectionIds.length - 1]);
+        return;
+      }
+
+      // Find the section currently in view
+      let current = sectionIds[0];
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= windowHeight * 0.3) {
+            current = id;
+          }
+        }
+      }
+      setActiveSection(current);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll(); // set initial state
+
+    // Expose the lock setter for the click handler
+    window.__clScrollLock = (lock) => {
+      isClickScrolling = lock;
+    };
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      delete window.__clScrollLock;
+    };
+  }, []);
+
+  // Smooth scroll handler
+  const scrollToSection = (e, sectionId) => {
+    e.preventDefault();
+    setActiveSection(sectionId);
+    setMobileMenu(false);
+
+    // Lock scroll tracking during smooth scroll animation
+    if (window.__clScrollLock) window.__clScrollLock(true);
+
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+
+    // Unlock after animation completes
+    setTimeout(() => {
+      if (window.__clScrollLock) window.__clScrollLock(false);
+    }, 1000);
+  };
+
+  const features = [
     {
-      name: "Sivapriya",
-      role: "Patient",
-      text: "This platform made it easy for my family to find a specialist doctor without traveling far. The process was simple and very helpful.",
+      icon: Calendar,
+      title: "Smart Scheduling",
+      desc: "Book appointments with specialist doctors instantly. Our intelligent system matches you with available time slots for in-person, video, or phone consultations.",
     },
     {
-      name: "Kajan",
-      role: "Village User",
-      text: "Booking appointments became much easier. The design is clear, and we can quickly connect with the right doctor.",
+      icon: Video,
+      title: "Video Consultations",
+      desc: "Connect with your doctor face-to-face from the comfort of your home. Secure, HD-quality video calls with integrated medical record sharing.",
     },
     {
-      name: "Dr. Nirmala",
-      role: "Specialist Doctor",
-      text: "Care Line 360 improves access to healthcare for rural communities and helps doctors connect with patients more efficiently.",
+      icon: Shield,
+      title: "Secure Health Records",
+      desc: "Your complete medical history in one place — prescriptions, diagnoses, lab results, and visit notes. All encrypted and accessible only to you and your care team.",
+    },
+    {
+      icon: MessageCircle,
+      title: "AI Health Companion",
+      desc: "Get instant, easy-to-understand explanations of your medical reports and prescriptions, powered by advanced medical AI technology.",
+    },
+    {
+      icon: Activity,
+      title: "Emergency Response",
+      desc: "One-tap emergency reporting with real-time GPS location sharing and nearest hospital coordination. Help arrives when seconds matter.",
+    },
+    {
+      icon: Stethoscope,
+      title: "Doctor Dashboard",
+      desc: "Comprehensive tools for healthcare professionals — patient management, analytics, prescription generation, and availability management.",
     },
   ];
 
-  const isLoggedIn = () => {
-    const token =
-      localStorage.getItem("token") || localStorage.getItem("accessToken");
-    return !!token;
-  };
+  const testimonials = [
+    {
+      name: "Dr. Amanda Perera",
+      role: "Cardiologist",
+      text: "CareLine 360 has transformed how I manage my practice. The seamless appointment system and medical record integration saves me hours every week.",
+      stars: 5,
+    },
+    {
+      name: "Kasun Wijeratne",
+      role: "Patient",
+      text: "I was able to consult with a specialist within hours of booking. The video consultation felt just as personal as an in-person visit. Truly remarkable.",
+      stars: 5,
+    },
+    {
+      name: "Dr. Nishantha Silva",
+      role: "General Practitioner",
+      text: "The analytics dashboard gives me incredible insights into patient trends. The prescription PDF generation and digital records are game-changers.",
+      stars: 5,
+    },
+  ];
 
-  useEffect(() => {
-    fetchDoctors();
-    fetchHospitals();
-  }, []);
-
-  const fetchDoctors = async () => {
-    try {
-      setLoadingDoctors(true);
-      setDoctorError("");
-
-      const res = await axios.get("http://localhost:5000/api/doctor/public");
-
-      const doctorData = res.data?.doctors || res.data?.data || res.data || [];
-      setDoctors(Array.isArray(doctorData) ? doctorData : []);
-    } catch (error) {
-      console.error("Failed to fetch doctors:", error);
-      setDoctorError("Failed to load doctors");
-    } finally {
-      setLoadingDoctors(false);
-    }
-  };
-
-  const fetchHospitals = async () => {
-    try {
-      setLoadingHospitals(true);
-      setHospitalError("");
-
-      const res = await axios.get("http://localhost:5000/api/hospitals");
-
-      const hospitalData = res.data?.data || res.data || [];
-      setHospitals(Array.isArray(hospitalData) ? hospitalData : []);
-    } catch (error) {
-      console.error("Failed to fetch hospitals:", error);
-      setHospitalError("Failed to load hospitals");
-    } finally {
-      setLoadingHospitals(false);
-    }
-  };
-
-  const handleBookDoctor = (doctor) => {
-    if (!isLoggedIn()) {
-      navigate("/login");
-      return;
-    }
-
-    navigate("/appointments/book", {
-      state: {
-        type: "doctor",
-        doctor,
-      },
-    });
-  };
-
-  const handleBookHospital = (hospital) => {
-    if (!isLoggedIn()) {
-      navigate("/login");
-      return;
-    }
-
-    navigate("/appointments/book", {
-      state: {
-        type: "hospital",
-        hospital,
-      },
-    });
-  };
-
-  const handleViewDoctorDetails = (doctor) => {
-    setSelectedDoctor(doctor);
-  };
-
-  const handleViewHospitalDetails = (hospital) => {
-    setSelectedHospital(hospital);
-  };
-
-  const visibleDoctors = showAllDoctors
-    ? doctors
-    : doctors.slice(0, DOCTOR_LIMIT);
-
-  const visibleHospitals = showAllHospitals
-    ? hospitals
-    : hospitals.slice(0, HOSPITAL_LIMIT);
-
-  const getMapEmbedUrl = (lat, lng) => {
-    if (!lat || !lng) return "";
-    return `https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
-  };
+  const faqs = [
+    {
+      q: "How do I book an appointment?",
+      a: "Simply create a free account, browse our directory of specialist doctors, and select a convenient time slot. You can choose between in-person, video, or phone consultations.",
+    },
+    {
+      q: "Is my medical data secure?",
+      a: "Absolutely. We use enterprise-grade encryption for all data at rest and in transit. Your medical records are accessible only to you and your authorized healthcare providers.",
+    },
+    {
+      q: "Can I access my prescriptions digitally?",
+      a: "Yes! All prescriptions are generated as professional PDFs and stored in your secure patient portal. You can download, share, or print them anytime.",
+    },
+    {
+      q: "What happens in an emergency?",
+      a: "Our emergency module allows one-tap emergency reporting with real-time GPS location sharing. The system coordinates with the nearest hospitals and emergency responders.",
+    },
+    {
+      q: "Do doctors use the same platform?",
+      a: "Yes, CareLine 360 provides a comprehensive doctor dashboard with patient management, scheduling, analytics, medical record creation, and prescription tools.",
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-6">
-      <div className="absolute top-0 left-0 w-full h-[420px] bg-gradient-to-r from-[#dff6f6] via-[#eff8f8] to-[#d9f1f2] blur-3xl opacity-70 -z-10" />
-      
-      <PatientNavbar />
-      
-      <section className="w-full mx-auto bg-white/80 backdrop-blur-xl border border-white/60  relative">
-        <div className="absolute top-[-60px] right-[-40px] w-[220px] h-[220px] rounded-full bg-[#178d95]/10 blur-2xl" />
-        <div className="absolute bottom-[-80px] left-[-60px] w-[260px] h-[260px] rounded-full bg-[#178d95]/10 blur-2xl" />
+    <div
+      className="lp-smooth-scroll"
+      style={{
+        background: "#F9F8F6",
+        color: "#1A1A1A",
+        minHeight: "100vh",
+        overflowX: "hidden",
+      }}
+    >
+      {/* Paper noise overlay */}
+      <div className="landing-noise" />
 
-        <main
-          id="home"
-          className="grid lg:grid-cols-2 gap-10 px-6 md:px-12 pt-8 md:pt-10 pb-14 items-center relative z-10 max-w-[1500px] mx-auto"
-        >
-          <div className="max-w-[580px]">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#178d95]/10 text-[#178d95] text-xs font-semibold mb-5">
-              <FaShieldAlt className="text-[11px]" />
-              Trusted Digital Healthcare Platform
+      {/* ═══════════════════════════════════════════════
+          NAVIGATION
+      ═══════════════════════════════════════════════ */}
+      <nav
+        className="fixed top-0 left-0 right-0 z-[60] transition-all duration-700"
+        style={{
+          background: scrolled ? "rgba(249,248,246,0.92)" : "transparent",
+          backdropFilter: scrolled ? "blur(16px)" : "none",
+          borderBottom: scrolled
+            ? "1px solid rgba(26,26,26,0.08)"
+            : "1px solid transparent",
+        }}
+      >
+        <div className="max-w-[1600px] mx-auto px-6 md:px-16 flex items-center justify-between h-20">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3">
+            <img
+              src={logo}
+              alt="CareLine 360"
+              className="h-10 md:h-12 w-auto"
+            />
+            <span className="lp-serif text-lg md:text-xl font-medium tracking-tight">
+              CareLine{" "}
+              <span style={{ color: "#0d9488", fontStyle: "italic" }}>360</span>
+            </span>
+          </Link>
+
+          {/* Desktop Nav */}
+          <div className="hidden lg:flex items-center gap-10">
+            {navItems.map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                className={`lp-nav-link${
+                  activeSection === item.id ? " lp-nav-link--active" : ""
+                }`}
+                onClick={(e) => scrollToSection(e, item.id)}
+              >
+                {item.label}
+              </a>
+            ))}
+            <div className="flex items-center gap-4 ml-6">
+              <Link
+                to="/login"
+                className="lp-btn-secondary"
+                style={{
+                  height: "2.75rem",
+                  padding: "0 1.75rem",
+                  fontSize: "0.65rem",
+                }}
+              >
+                Sign In
+              </Link>
+              <a
+                href="#about"
+                className="lp-btn-primary"
+                style={{
+                  height: "2.75rem",
+                  padding: "0 1.75rem",
+                  fontSize: "0.65rem",
+                }}
+                onClick={(e) => scrollToSection(e, "about")}
+              >
+                <span className="btn-gold-bg" />
+                <span className="btn-label">Get Started</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Mobile Menu Toggle */}
+          <button
+            className="lg:hidden flex flex-col gap-1.5 p-2"
+            onClick={() => setMobileMenu(!mobileMenu)}
+            aria-label="Toggle menu"
+          >
+            <span
+              className="w-6 h-px bg-[#1A1A1A] transition-transform duration-500"
+              style={{
+                transform: mobileMenu
+                  ? "rotate(45deg) translateY(4px)"
+                  : "none",
+              }}
+            />
+            <span
+              className="w-6 h-px bg-[#1A1A1A] transition-opacity duration-500"
+              style={{ opacity: mobileMenu ? 0 : 1 }}
+            />
+            <span
+              className="w-6 h-px bg-[#1A1A1A] transition-transform duration-500"
+              style={{
+                transform: mobileMenu
+                  ? "rotate(-45deg) translateY(-4px)"
+                  : "none",
+              }}
+            />
+          </button>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenu && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="lg:hidden border-t"
+            style={{
+              background: "rgba(249,248,246,0.97)",
+              borderColor: "rgba(26,26,26,0.08)",
+            }}
+          >
+            <div className="px-6 py-8 flex flex-col gap-6">
+              {navItems.map((item) => (
+                <a
+                  key={item.id}
+                  href={`#${item.id}`}
+                  className={`lp-nav-link${
+                    activeSection === item.id ? " lp-nav-link--active" : ""
+                  }`}
+                  onClick={(e) => scrollToSection(e, item.id)}
+                >
+                  {item.label}
+                </a>
+              ))}
+              <div className="flex flex-col gap-3 mt-4">
+                <Link to="/login" className="lp-btn-secondary text-center">
+                  Sign In
+                </Link>
+                <a
+                  href="#about"
+                  className="lp-btn-primary text-center"
+                  onClick={(e) => scrollToSection(e, "about")}
+                >
+                  <span className="btn-gold-bg" />
+                  <span className="btn-label">Get Started</span>
+                </a>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </nav>
+
+      {/* ═══════════════════════════════════════════════
+          HERO SECTION
+      ═══════════════════════════════════════════════ */}
+      <section id="home" className="relative min-h-screen flex items-center pt-28 md:pt-32 pb-16 md:pb-24 overflow-hidden">
+        {/* Falling beam background animation */}
+        <FallBeamBackground lineCount={15} beamColorClass="teal-400" />
+
+        {/* Teal glow — large ambient aura surrounding the entire doctor image */}
+        <div
+          className="hidden lg:block absolute pointer-events-none select-none"
+          style={{
+            right: "-2%",
+            top: "10%",
+            width: "1000px",
+            height: "750px",
+            zIndex: 5,
+            background: "radial-gradient(ellipse at center, rgba(13,148,136,0.42) 0%, rgba(6,182,212,0.22) 35%, rgba(13,148,136,0.10) 60%, transparent 80%)",
+            filter: "blur(90px)",
+            borderRadius: "50%",
+          }}
+        />
+
+        {/* Doctor image — absolutely positioned on the right, ABOVE the glow */}
+        <motion.img
+          src={doctorImg1}
+          alt="CareLine360 Medical Team"
+          initial={{ opacity: 0, x: 60, scale: 0.95, y: 20 }}
+          animate={{
+            opacity: 1,
+            x: 0,
+            scale: 1,
+            y: [-28, -58, -28],
+          }}
+          transition={{
+            opacity: { duration: 1.4, delay: 0.5 },
+            x: { duration: 1.4, delay: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
+            scale: {
+              duration: 1.4,
+              delay: 0.5,
+              ease: [0.25, 0.46, 0.45, 0.94],
+            },
+            y: { duration: 7, repeat: Infinity, ease: "easeInOut" },
+          }}
+          className="hidden lg:block absolute right-0 bottom-0 pointer-events-none select-none"
+          style={{
+            zIndex: 10,
+            marginBottom: "clamp(48px, 7vh, 88px)",
+            height: "92%",
+            width: "auto",
+            maxWidth: "58%",
+            objectFit: "contain",
+            objectPosition: "right",
+            filter: "drop-shadow(0 30px 50px rgba(0,0,0,0.12))",
+          }}
+        />
+
+        <div className="max-w-[1600px] mx-auto px-6 md:px-16 w-full relative z-20">
+          <div className="max-w-xl lg:max-w-[45%]">
+            {/* Overline */}
+            <div className="flex items-center gap-4 mb-6">
+              <span className="lp-overline" style={{ color: "#0d9488" }}>
+                Healthcare Reimagined
+              </span>
             </div>
 
-            <h2 className="text-[34px] sm:text-[44px] lg:text-[56px] leading-[0.98] font-bold tracking-tight text-[#0f172a]">
-              Bringing
-              <span className="block text-[#178d95]">Specialist Care</span>
-              <span className="block text-[#94a3b8]">Closer to Villages</span>
-            </h2>
+            {/* Hero Headline */}
+            <h1 className="lp-serif text-[2.5rem] md:text-6xl lg:text-7xl xl:text-8xl font-normal leading-[0.95] mb-6">
+              <BlurText
+                text="Your Health,"
+                delay={180}
+                animateBy="words"
+                direction="bottom"
+                className="lp-serif text-[2.5rem] md:text-6xl lg:text-7xl xl:text-8xl font-normal leading-[0.95]"
+                stepDuration={0.5}
+              />
+              <span className="block mt-1">
+                <BlurText
+                  text="Our"
+                  delay={200}
+                  animateBy="words"
+                  direction="bottom"
+                  className="lp-serif text-[2.5rem] md:text-6xl lg:text-7xl xl:text-8xl font-normal leading-[0.95]"
+                  stepDuration={0.5}
+                />
+                <span className="lp-serif italic" style={{ color: "#0d9488" }}>
+                  {" "}
+                  <BlurText
+                    text="Priority"
+                    delay={300}
+                    animateBy="words"
+                    direction="bottom"
+                    className="lp-serif italic text-[2.5rem] md:text-6xl lg:text-7xl xl:text-8xl font-normal leading-[0.95]"
+                    stepDuration={0.6}
+                  />
+                </span>
+              </span>
+            </h1>
 
-            <p className="mt-5 text-[#5b6b7b] text-sm md:text-base leading-7 max-w-[540px]">
-              Care Line 360 helps rural communities easily connect with
-              specialist doctors, book appointments, access medical records,
-              and receive timely healthcare support through one modern digital
-              platform.
+            {/* Sub-headline */}
+            <p
+              className="lp-sans text-base md:text-lg leading-relaxed max-w-md mb-10"
+              style={{ color: "#6C6863" }}
+            >
+              A smart healthcare platform connecting patients with specialist
+              doctors — seamless appointments, secure records, and AI-powered
+              insights, all in one place.
             </p>
 
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link
-                to="/register"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#178d95] text-white text-sm font-medium hover:bg-[#126f76] transition hover:shadow-sm hover:-translate-y-1 duration-300"
-              >
-                Get Started
-                <FaArrowRight className="text-xs" />
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-12">
+              <Link to="/register" className="lp-btn-primary">
+                <span className="btn-gold-bg" />
+                <span className="btn-label flex items-center gap-2">
+                  Book Appointment <ArrowRight size={14} />
+                </span>
               </Link>
-
-              <Link
-                to="/patient/directory"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[#d7dee5] bg-white text-[#0f172a] text-sm font-medium hover:bg-[#f8fafc] transition hover:shadow-sm hover:-translate-y-1 duration-300"
-              >
-                Find Doctors
-              </Link>
+              <a href="#features" className="lp-btn-secondary">
+                Explore Features
+              </a>
             </div>
 
-            <div className="mt-7 flex flex-wrap gap-3">
-              <span className="px-3.5 py-2 rounded-full bg-[#f4f7f8] text-[#4b5563] text-xs font-medium hover:shadow-md transition hover:-translate-y-1 duration-300">
-                100+ Verified Specialists
-              </span>
-              <span className="px-3.5 py-2 rounded-full bg-[#f4f7f8] text-[#4b5563] text-xs font-medium hover:shadow-md transition hover:-translate-y-1 duration-300">
-                24/7 Access Support
-              </span>
-              <span className="px-3.5 py-2 rounded-full bg-[#f4f7f8] text-[#4b5563] text-xs font-medium hover:shadow-md transition hover:-translate-y-1 duration-300">
-                Rural Friendly Platform
-              </span>
-            </div>
-
-            <div className="mt-8 grid grid-cols-3 gap-3 max-w-[520px]">
-              <div className="bg-[#f8f9fa] border border-[#e5e7eb] rounded-2xl p-4 hover:shadow-md transition hover:-translate-y-1 duration-300">
-                <h3 className="text-xl md:text-2xl font-semibold text-[#178d95]">
-                  100+
-                </h3>
-                <p className="text-xs text-[#6b7280] mt-1 leading-5">
-                  Specialist Doctors
+            {/* Micro stats */}
+            <div className="flex gap-8 md:gap-12">
+              <div>
+                <Counter target={5000} suffix="+" />
+                <p className="lp-overline mt-1" style={{ fontSize: "0.6rem" }}>
+                  Patients Served
                 </p>
               </div>
-
-              <div className="bg-[#f8f9fa] border border-[#e5e7eb] rounded-2xl p-4 hover:shadow-md transition hover:-translate-y-1 duration-300">
-                <h3 className="text-xl md:text-2xl font-semibold text-[#178d95]">
-                  5K+
-                </h3>
-                <p className="text-xs text-[#6b7280] mt-1 leading-5">
-                  Patients Helped
+              <div>
+                <Counter target={200} suffix="+" />
+                <p className="lp-overline mt-1" style={{ fontSize: "0.6rem" }}>
+                  Expert Doctors
                 </p>
               </div>
-
-              <div className="bg-[#f8f9fa] border border-[#e5e7eb] rounded-2xl p-4 hover:shadow-md transition hover:-translate-y-1 duration-300">
-                <h3 className="text-xl md:text-2xl font-semibold text-[#178d95]">
-                  24/7
-                </h3>
-                <p className="text-xs text-[#6b7280] mt-1 leading-5">
-                  Care Accessibility
+              <div>
+                <Counter target={98} suffix="%" />
+                <p className="lp-overline mt-1" style={{ fontSize: "0.6rem" }}>
+                  Satisfaction
                 </p>
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="relative">
-            <div className="absolute inset-0 translate-x-4 translate-y-4 rounded-[28px] bg-gradient-to-br from-[#178d95]/15 to-[#178d95]/5 blur-sm" />
+      {/* ═══════════════════════════════════════════════
+          SCROLL VELOCITY TEXT
+      ═══════════════════════════════════════════════ */}
+      <div
+        className="py-8 md:py-12 overflow-hidden border-t border-b"
+        style={{ borderColor: "rgba(26,26,26,0.06)" }}
+      >
+        <ScrollVelocity
+          texts={[
+            "CareLine 360",
+            "Smart Healthcare",
+            "Patient Care",
+            "Doctor Connect",
+          ]}
+          velocity={60}
+          className="lp-scroll-velocity"
+          numCopies={4}
+        />
+      </div>
 
-            <div className="relative rounded-[28px] overflow-hidden border border-[#eef2f4] bg-white">
+      {/* ═══════════════════════════════════════════════
+          ABOUT / MISSION SECTION
+      ═══════════════════════════════════════════════ */}
+      <FadeSection id="about" className="py-20 md:py-32">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center relative">
+            {/* Teal glow behind the about doctor image */}
+            <div
+              className="hidden lg:block absolute pointer-events-none select-none"
+              style={{
+                left: "2%",
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: "900px",
+                height: "900px",
+                zIndex: 5,
+                background: "radial-gradient(ellipse at center, rgba(13,148,136,0.45) 0%, rgba(6,182,212,0.25) 35%, rgba(13,148,136,0.12) 60%, transparent 80%)",
+                filter: "blur(100px)",
+                borderRadius: "50%",
+              }}
+            />
+
+            {/* Doctor image — wider column, slightly scaled up */}
+            <div className="lg:col-span-6 lg:col-start-1 relative">
               <img
-                src="/hero-doctor.jpg"
-                alt="Rural patients connecting with specialist doctors"
-                className="w-full h-[500px] object-cover"
+                src={doctorImg2}
+                alt="Healthcare professionals team"
+                className="w-full h-auto object-contain relative"
+                style={{
+                  zIndex: 10,
+                  transform: "scale(1.44)",
+                  transformOrigin: "center bottom",
+                  filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.08))",
+                }}
               />
             </div>
 
-            <div className="absolute top-5 left-5 bg-white/95 backdrop-blur-md rounded-2xl border border-[#e5e7eb] px-4 py-3 w-[210px]">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#178d95]/10 flex items-center justify-center text-[#178d95]">
-                  <FaUserMd className="text-sm" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-[#0f172a]">
-                    Specialist Access
-                  </p>
-                  <p className="text-[11px] text-[#6b7280]">
-                    Connect with verified doctors
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute bottom-5 left-5 bg-white/95 backdrop-blur-md rounded-2xl border border-[#e5e7eb] px-4 py-3 w-[220px]">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#178d95]/10 flex items-center justify-center text-[#178d95]">
-                  <FaCalendarCheck className="text-sm" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-[#0f172a]">
-                    Easy Appointments
-                  </p>
-                  <p className="text-[11px] text-[#6b7280]">
-                    Faster booking for rural patients
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute top-1/2 -right-3 md:-right-6 -translate-y-1/2 bg-[#178d95] text-white rounded-[24px] px-5 py-4 w-[190px]">
-              <p className="text-xs font-medium opacity-90 leading-5">
-                Healthcare that reaches beyond cities
-              </p>
-              <div className="mt-3 flex items-center gap-2">
-                <FaPhoneAlt className="text-xs" />
-                <span className="text-xs font-semibold">Online Consult</span>
-              </div>
-            </div>
-          </div>
-        </main>
-
-        <section
-          id="services"
-          className="px-6 md:px-12 pb-10 md:pb-12 pt-2 relative z-10 max-w-[1500px] mx-auto"
-        >
-          <div className="mb-8 mt-12 flex flex-col items-center text-center gap-3">
-            <p className="text-[#178d95] text-xs font-semibold uppercase tracking-[0.16em] mb-2">
-              Core Services
-            </p>
-            <h3 className="text-2xl md:text-3xl font-semibold text-[#0f172a]">
-              Everything needed for better digital care
-            </h3>
-            <p className="text-[#6b7280] max-w-[520px] mt-3 text-sm leading-6">
-              Designed to help village patients discover specialists, schedule
-              consultations, and manage their healthcare journey with ease.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-            <div className="bg-[#f8f9fa] rounded-2xl p-5 border border-[#e5e7eb] hover:shadow-sm transition hover:-translate-y-1 duration-300">
-              <div className="w-12 h-12 rounded-xl bg-[#178d95]/10 flex items-center justify-center text-[#178d95] text-lg mb-4">
-                <FaCalendarCheck />
-              </div>
-              <h4 className="text-lg font-semibold text-[#0f172a] mb-2">
-                Easy Appointments
-              </h4>
-              <p className="text-[#6b7280] leading-6 text-sm">
-                Book and manage appointments with top doctors in just a few
-                clicks.
-              </p>
-            </div>
-
-            <div className="bg-[#f8f9fa] rounded-2xl p-5 border border-[#e5e7eb] hover:shadow-sm transition hover:-translate-y-1 duration-300">
-              <div className="w-12 h-12 rounded-xl bg-[#178d95]/10 flex items-center justify-center text-[#178d95] text-lg mb-4">
-                <FaHeartbeat />
-              </div>
-              <h4 className="text-lg font-semibold text-[#0f172a] mb-2">
-                Medical Records
-              </h4>
-              <p className="text-[#6b7280] leading-6 text-sm">
-                Securely store and access your medical history anytime,
-                anywhere.
-              </p>
-            </div>
-
-            <div className="bg-[#f8f9fa] rounded-2xl p-5 border border-[#e5e7eb] hover:shadow-sm transition hover:-translate-y-1 duration-300">
-              <div className="w-12 h-12 rounded-xl bg-[#178d95]/10 flex items-center justify-center text-[#178d95] text-lg mb-4">
-                <FaPhoneAlt />
-              </div>
-              <h4 className="text-lg font-semibold text-[#0f172a] mb-2">
-                Telemedicine
-              </h4>
-              <p className="text-[#6b7280] leading-6 text-sm">
-                Connect with healthcare professionals through online
-                consultations.
-              </p>
-            </div>
-
-            <div className="bg-[#f8f9fa] rounded-2xl p-5 border border-[#e5e7eb] hover:shadow-sm transition hover:-translate-y-1 duration-300">
-              <div className="w-12 h-12 rounded-xl bg-[#178d95]/10 flex items-center justify-center text-[#178d95] text-lg mb-4">
-                <FaClinicMedical />
-              </div>
-              <h4 className="text-lg font-semibold text-[#0f172a] mb-2">
-                E-Prescriptions
-              </h4>
-              <p className="text-[#6b7280] leading-6 text-sm">
-                Receive digital prescriptions and continue your treatment with
-                ease.
-              </p>
-            </div>
-
-            <div className="bg-[#f8f9fa] rounded-2xl p-5 border border-[#e5e7eb] hover:shadow-sm transition hover:-translate-y-1 duration-300">
-              <div className="w-12 h-12 rounded-xl bg-[#178d95]/10 flex items-center justify-center text-[#178d95] text-lg mb-4">
-                <FaUserMd />
-              </div>
-              <h4 className="text-lg font-semibold text-[#0f172a] mb-2">
-                Health Monitoring
-              </h4>
-              <p className="text-[#6b7280] leading-6 text-sm">
-                Track your health journey and stay connected with the right care
-                support.
-              </p>
-            </div>
-
-            <div className="bg-[#f8f9fa] rounded-2xl p-5 border border-[#e5e7eb] hover:shadow-sm transition hover:-translate-y-1 duration-300">
-              <div className="w-12 h-12 rounded-xl bg-[#178d95]/10 flex items-center justify-center text-[#178d95] text-lg mb-4">
-                <FaShieldAlt />
-              </div>
-              <h4 className="text-lg font-semibold text-[#0f172a] mb-2">
-                Data Security
-              </h4>
-              <p className="text-[#6b7280] leading-6 text-sm">
-                Your health data is encrypted and managed with better security
-                standards.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="how"
-          className="px-6 md:px-12 pb-12 md:pb-14 relative z-10 max-w-[1500px] mx-auto"
-        >
-          <div className="grid lg:grid-rows-2 gap-8 items-center lg:mb-12 mt-12">
-            <div className="flex flex-col items-center text-center">
-              <p className="text-[#178d95] text-xs font-semibold uppercase tracking-[0.16em]">
-                How It Works
-              </p>
-              <h3 className="text-2xl md:text-3xl font-semibold text-[#0f172a] mt-2 mb-4">
-                Simple steps to access specialist care
-              </h3>
-              <p className="text-[#6b7280] leading-7 max-w-[540px] text-sm">
-                The platform is designed to be simple and easy for anyone to
-                use, even for first-time digital healthcare users in rural
-                communities.
-              </p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <div className="flex gap-4 bg-[#f8f9fa] rounded-2xl p-5 border border-[#e5e7eb] hover:shadow-sm transition hover:-translate-y-1 duration-300">
-                <div className="w-10 h-10 rounded-full bg-[#178d95] text-white flex items-center justify-center font-semibold text-sm shrink-0">
-                  1
-                </div>
-                <div>
-                  <h4 className="font-semibold text-[#0f172a] text-base">
-                    Create Your Account
-                  </h4>
-                  <p className="text-sm text-[#6b7280] mt-1 leading-6">
-                    Register securely and set up your patient profile with basic
-                    details.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-4 bg-[#f8f9fa] rounded-2xl p-5 border border-[#e5e7eb] hover:shadow-sm transition hover:-translate-y-1 duration-300">
-                <div className="w-10 h-10 rounded-full bg-[#178d95] text-white flex items-center justify-center font-semibold text-sm shrink-0">
-                  2
-                </div>
-                <div>
-                  <h4 className="font-semibold text-[#0f172a] text-base">
-                    Search Specialist Doctors
-                  </h4>
-                  <p className="text-sm text-[#6b7280] mt-1 leading-6">
-                    Find the right doctor based on specialty and available
-                    consultation time.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-4 bg-[#f8f9fa] rounded-2xl p-5 border border-[#e5e7eb] hover:shadow-sm transition hover:-translate-y-1 duration-300">
-                <div className="w-10 h-10 rounded-full bg-[#178d95] text-white flex items-center justify-center font-semibold text-sm shrink-0">
-                  3
-                </div>
-                <div>
-                  <h4 className="font-semibold text-[#0f172a] text-base">
-                    Book and Receive Care
-                  </h4>
-                  <p className="text-sm text-[#6b7280] mt-1 leading-6">
-                    Confirm your appointment and continue your healthcare
-                    journey with easier access and follow-up.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="doctors" className="px-6 md:px-12 pb-12 max-w-[1500px] mx-auto">
-          <div className="mb-8 flex flex-col items-center text-center">
-            <p className="text-[#178d95] text-xs font-semibold uppercase tracking-[0.16em]">
-              Doctors
-            </p>
-            <h3 className="text-2xl md:text-3xl font-semibold text-[#0f172a] mt-2">
-              Meet Specialist Doctors
-            </h3>
-          </div>
-
-          {loadingDoctors ? (
-            <p className="text-center text-[#6b7280]">Loading doctors...</p>
-          ) : doctorError ? (
-            <p className="text-center text-red-500">{doctorError}</p>
-          ) : doctors.length === 0 ? (
-            <p className="text-center text-[#6b7280]">No doctors found.</p>
-          ) : (
-            <>
-              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {visibleDoctors.map((doctor) => (
-                  <div
-                  key={doctor._id}
-                  className="group bg-white rounded-[24px] p-5 border border-[#e8eef0] shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 flex flex-col overflow-hidden"
-                >
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="relative shrink-0">
-                      <div className="absolute inset-0 rounded-full bg-[#178d95]/15 blur-md scale-110" />
-                      <img
-                        src={doctor.avatarUrl || "/default-doctor.png"}
-                        alt={doctor.fullName}
-                        className="relative w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
-                      />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h4 className="text-[17px] font-semibold text-[#0f172a] leading-tight truncate">
-                            {doctor.fullName}
-                          </h4>
-                          <p className="text-sm text-[#178d95] font-medium mt-1">
-                            {doctor.specialization || "General"}
-                          </p>
-                        </div>
-
-                        <div className="shrink-0 px-2.5 py-1 rounded-full bg-[#178d95]/10 text-[#178d95] text-[11px] font-semibold border border-[#178d95]/10">
-                          Verified
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex items-center gap-2 flex-wrap">
-                        <div className="flex items-center gap-1 text-[#f59e0b] text-sm">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <FaStar
-                              key={star}
-                              className={
-                                star <= Math.round(doctor.rating || 0)
-                                  ? "text-[#f59e0b]"
-                                  : "text-[#e5e7eb]"
-                              }
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs font-medium text-[#475569]">
-                          {doctor.rating || 0} / 5
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 text-sm text-[#64748b] flex-1">
-                    <div className="flex items-center gap-2">
-                      <FaStethoscope className="text-[#178d95] shrink-0" />
-                      <span className="truncate">
-                        {doctor.qualifications || "Qualification not added"}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <span className="px-3 py-1.5 rounded-full bg-[#f8fafc] border border-[#e2e8f0] text-xs font-medium text-[#334155]">
-                        {doctor.experience || 0} Years Exp
-                      </span>
-                      <span className="px-3 py-1.5 rounded-full bg-[#f8fafc] border border-[#e2e8f0] text-xs font-medium text-[#334155]">
-                        Rs. {doctor.consultationFee || 0}
-                      </span>
-                    </div>
-
-                    <p className="text-xs leading-6 text-[#6b7280] line-clamp-2">
-                      {doctor.bio || "No bio available"}
-                    </p>
-                  </div>
-
-                  <div className="mt-5 flex gap-3 pt-4 border-t border-[#f1f5f9]">
-                    <button
-                      onClick={() => handleViewDoctorDetails(doctor)}
-                      className="flex-1 px-4 py-2.5 rounded-full border border-[#178d95] text-[#178d95] text-sm font-medium hover:bg-[#178d95]/5 transition"
-                    >
-                      View Details
-                    </button>
-
-                    <button
-                      onClick={() => handleBookDoctor(doctor)}
-                      className="flex-1 px-4 py-2.5 rounded-full bg-[#178d95] text-white text-sm font-medium hover:bg-[#126f76] transition"
-                    >
-                      Book Now
-                    </button>
-                  </div>
-                </div>
-                ))}
-              </div>
-
-              {doctors.length > DOCTOR_LIMIT && (
-                <div className="mt-8 flex justify-center">
-                  <button
-                    onClick={() => setShowAllDoctors((prev) => !prev)}
-                    className="px-6 py-3 rounded-full border border-[#178d95] text-[#178d95] text-sm font-medium hover:bg-[#178d95]/5 transition"
-                  >
-                    {showAllDoctors ? "Show Less Doctors" : "See All Doctors"}
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </section>
-
-        <section id="hospitals" className="px-6 md:px-12 pb-12 max-w-[1500px] mx-auto">
-          <div className="mb-8 flex flex-col items-center text-center">
-            <p className="text-[#178d95] text-xs font-semibold uppercase tracking-[0.16em]">
-              Hospitals
-            </p>
-            <h3 className="text-2xl md:text-3xl font-semibold text-[#0f172a] mt-2">
-              Nearby Hospitals and Care Centers
-            </h3>
-          </div>
-
-          {loadingHospitals ? (
-            <p className="text-center text-[#6b7280]">Loading hospitals...</p>
-          ) : hospitalError ? (
-            <p className="text-center text-red-500">{hospitalError}</p>
-          ) : hospitals.length === 0 ? (
-            <p className="text-center text-[#6b7280]">No hospitals found.</p>
-          ) : (
-            <>
-              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {visibleHospitals.map((hospital) => (
-                  <div
-                  key={hospital._id}
-                  className="bg-white rounded-[26px] p-5 border border-[#e6edf0] shadow-sm hover:shadow-lg hover:-translate-y-1 transition duration-300 flex flex-col"
-                >
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="w-14 h-14 rounded-2xl bg-[#178d95]/10 flex items-center justify-center text-[#178d95] text-lg shrink-0 border border-[#dbe7ea]">
-                      <FaClinicMedical />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <h4 className="text-base font-semibold text-[#0f172a] truncate">
-                            {hospital.name}
-                          </h4>
-                          <p className="text-sm text-[#178d95] font-medium mt-0.5">
-                            Healthcare Center
-                          </p>
-                        </div>
-
-                        <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2.5 py-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                          Active
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 text-sm text-[#64748b] flex-1">
-                    <p className="flex items-start gap-2">
-                      <FaMapMarkerAlt className="text-[#178d95] mt-0.5 shrink-0" />
-                      <span className="line-clamp-2">
-                        {hospital.address || "Address not available"}
-                      </span>
-                    </p>
-
-                    <p className="flex items-center gap-2">
-                      <FaPhoneAlt className="text-[#178d95] shrink-0" />
-                      <span>{hospital.contact || "Contact not available"}</span>
-                    </p>
-
-                    {hospital.lat && hospital.lng ? (
-                      <a
-                        href={`https://www.google.com/maps?q=${hospital.lat},${hospital.lng}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 text-[#178d95] hover:underline text-xs font-medium"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <FaMapMarkerAlt className="shrink-0" />
-                        View on Google Maps
-                      </a>
-                    ) : (
-                      <p className="text-xs text-[#9ca3af]">Location not available</p>
-                    )}
-                  </div>
-
-                  <div className="mt-5 flex gap-3 pt-4 border-t border-[#eef2f4]">
-                    <button
-                      onClick={() => setSelectedHospital(hospital)}
-                      className="flex-1 px-4 py-2.5 rounded-full border border-[#178d95] text-[#178d95] text-sm font-medium hover:bg-[#178d95]/5 transition"
-                    >
-                      View Details
-                    </button>
-                    <button
-                      onClick={() => handleBookHospital(hospital)}
-                      className="flex-1 px-4 py-2.5 rounded-full bg-[#178d95] text-white text-sm font-medium hover:bg-[#126f76] transition"
-                    >
-                      Book Now
-                    </button>
-                  </div>
-                </div>
-                ))}
-              </div>
-
-              {hospitals.length > HOSPITAL_LIMIT && (
-                <div className="mt-8 flex justify-center">
-                  <button
-                    onClick={() => setShowAllHospitals((prev) => !prev)}
-                    className="px-6 py-3 rounded-full border border-[#178d95] text-[#178d95] text-sm font-medium hover:bg-[#178d95]/5 transition"
-                  >
-                    {showAllHospitals ? "Show Less Hospitals" : "See All Hospitals"}
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </section>
-
-        <section
-          id="testimonials"
-          className="px-6 md:px-12 pb-10 md:pb-12 relative z-10 max-w-[1500px] mx-auto"
-        >
-          <div className="mb-8 flex flex-col items-center text-center">
-            <p className="text-[#178d95] text-xs font-semibold uppercase tracking-[0.16em]">
-              Testimonials
-            </p>
-            <h3 className="text-2xl md:text-3xl font-semibold text-[#0f172a] mt-2">
-              What people say about Care Line 360
-            </h3>
-          </div>
-
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {testimonials.map((item, index) => (
-              <div
-                key={index}
-                className="bg-[#f8f9fa] rounded-2xl p-5 border border-[#e5e7eb] hover:shadow-sm transition hover:-translate-y-1 duration-300"
+            {/* Text — starts right next to the image */}
+            <div className="lg:col-span-5 lg:col-start-7">
+              <span className="lp-overline" style={{ color: "#0d9488" }}>
+                Our Mission
+              </span>
+              <h2 className="lp-serif text-3xl md:text-5xl lg:text-6xl font-normal leading-[0.95] mt-4 mb-6">
+                Connecting{" "}
+                <span className="italic" style={{ color: "#0d9488" }}>
+                  Lives
+                </span>
+                <br />
+                Through Care
+              </h2>
+              <p
+                className="lp-sans text-base leading-relaxed lp-drop-cap"
+                style={{ color: "#6C6863" }}
               >
-                <div className="flex gap-1 text-[#f59e0b] mb-4 text-sm">
-                  <FaStar />
-                  <FaStar />
-                  <FaStar />
-                  <FaStar />
-                  <FaStar />
+                CareLine 360 bridges the gap between patients and healthcare
+                providers through intelligent technology. We believe that
+                quality healthcare should be accessible, transparent, and
+                seamless. Our platform empowers both doctors and patients with
+                tools that simplify every step of the healthcare journey — from
+                booking that first appointment to receiving your AI-explained
+                medical report.
+              </p>
+              <div className="mt-8">
+                <Link to="/register" className="lp-btn-primary">
+                  <span className="btn-gold-bg" />
+                  <span className="btn-label flex items-center gap-2">
+                    Join CareLine Today <ArrowRight size={14} />
+                  </span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </FadeSection>
+
+      {/* ═══════════════════════════════════════════════
+          FEATURES SECTION
+      ═══════════════════════════════════════════════ */}
+      <FadeSection
+        id="features"
+        className="py-20 md:py-32 border-t"
+        style={{ borderColor: "rgba(26,26,26,0.06)" }}
+      >
+        <div className="max-w-[1600px] mx-auto px-6 md:px-16">
+          {/* Section Header */}
+          <div className="max-w-xl mb-16 md:mb-20">
+            <span className="lp-overline" style={{ color: "#0d9488" }}>
+              What We Offer
+            </span>
+            <h2 className="lp-serif text-3xl md:text-5xl lg:text-6xl font-normal leading-[0.95] mt-4">
+              The{" "}
+              <span className="italic" style={{ color: "#0d9488" }}>
+                Features
+              </span>
+            </h2>
+          </div>
+
+          {/* Feature Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0">
+            {features.map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <motion.div
+                  key={i}
+                  className="lp-feature-card px-6 md:px-8"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{
+                    duration: 0.6,
+                    delay: i * 0.1,
+                    ease: [0.25, 0.46, 0.45, 0.94],
+                  }}
+                >
+                  <div
+                    className="lp-feature-icon w-12 h-12 flex items-center justify-center border mb-5"
+                    style={{ borderColor: "rgba(26,26,26,0.15)" }}
+                  >
+                    <Icon size={20} strokeWidth={1.2} />
+                  </div>
+                  <h3 className="lp-serif text-xl md:text-2xl font-normal mb-3">
+                    {f.title}
+                  </h3>
+                  <p
+                    className="lp-sans text-sm leading-relaxed"
+                    style={{ color: "#6C6863" }}
+                  >
+                    {f.desc}
+                  </p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </FadeSection>
+
+      {/* ═══════════════════════════════════════════════
+          3D IMAGE SLIDER
+      ═══════════════════════════════════════════════ */}
+      <div className="relative border-t border-b overflow-hidden" style={{ borderColor: "rgba(26,26,26,0.06)" }}>
+        {/* Teal glow behind slider */}
+        <div
+          className="absolute pointer-events-none select-none"
+          style={{
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "900px",
+            height: "600px",
+            zIndex: 0,
+            background: "radial-gradient(ellipse at center, rgba(13,148,136,0.30) 0%, rgba(6,182,212,0.15) 35%, rgba(13,148,136,0.06) 60%, transparent 80%)",
+            filter: "blur(100px)",
+            borderRadius: "50%",
+          }}
+        />
+        <ThreeDSlider
+          items={sliderItems}
+          speedWheel={0.05}
+          speedDrag={-0.15}
+          containerStyle={{ height: "80vh" }}
+        />
+      </div>
+
+      {/* ═══════════════════════════════════════════════
+          TESTIMONIALS
+      ═══════════════════════════════════════════════ */}
+      <FadeSection id="testimonials" className="py-20 md:py-32">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-16">
+          <div className="max-w-xl mb-16">
+            <span className="lp-overline" style={{ color: "#0d9488" }}>
+              What People Say
+            </span>
+            <h2 className="lp-serif text-3xl md:text-5xl lg:text-6xl font-normal leading-[0.95] mt-4">
+              Trusted by{" "}
+              <span className="italic" style={{ color: "#0d9488" }}>
+                Thousands
+              </span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+            {testimonials.map((t, i) => (
+              <motion.div
+                key={i}
+                className="lp-testimonial group"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: i * 0.15 }}
+              >
+                {/* Stars */}
+                <div className="flex gap-1 mb-4">
+                  {Array.from({ length: t.stars }).map((_, j) => (
+                    <Star
+                      key={j}
+                      size={14}
+                      fill="#0d9488"
+                      stroke="none"
+                      className="transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ))}
                 </div>
-                <p className="text-[#6b7280] leading-6 text-sm mb-5">
-                  {item.text}
+                <p
+                  className="lp-serif text-base md:text-lg italic leading-relaxed mb-6"
+                  style={{ color: "#1A1A1A" }}
+                >
+                  &ldquo;{t.text}&rdquo;
                 </p>
                 <div>
-                  <h4 className="text-base font-semibold text-[#0f172a]">
-                    {item.name}
-                  </h4>
-                  <p className="text-sm text-[#178d95]">{item.role}</p>
+                  <p className="lp-sans text-sm font-medium transition-colors duration-500 group-hover:text-[#0d9488]">
+                    {t.name}
+                  </p>
+                  <p
+                    className="lp-overline mt-1"
+                    style={{ fontSize: "0.6rem" }}
+                  >
+                    {t.role}
+                  </p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </section>
+        </div>
+      </FadeSection>
 
-        <section className="px-6 md:px-12 pb-10 md:pb-12 relative z-10 max-w-[1500px] mx-auto">
-          <div className="rounded-[26px] bg-gradient-to-r from-[#178d95] to-[#126f76] p-7 md:p-9 text-white">
-            <div className="grid lg:grid-cols-2 gap-6 items-center">
-              <div>
-                <p className="uppercase tracking-[0.16em] text-xs font-semibold text-white/80">
-                  Need Immediate Support
-                </p>
-                <h3 className="text-2xl md:text-3xl font-semibold mt-2">
-                  Access healthcare support anytime, anywhere
-                </h3>
-                <p className="mt-4 text-white/85 leading-7 max-w-[560px] text-sm">
-                  Connect patients from rural communities with the right
-                  healthcare guidance faster through a reliable and easy-to-use
-                  digital platform.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap lg:justify-end gap-3">
-                <Link
-                  to="/doctors"
-                  className="px-6 py-3 rounded-full bg-white text-[#178d95] text-sm font-medium hover:bg-[#f8fafc] transition hover:shadow-sm hover:-translate-y-1 duration-300"
-                >
-                  Find a Doctor
-                </Link>
-
-                <Link
-                  to="/register"
-                  className="px-6 py-3 rounded-full border border-white/40 text-white text-sm font-medium hover:bg-white/10 transition hover:shadow-sm hover:-translate-y-1 duration-300"
-                >
-                  Create Account
-                </Link>
-              </div>
-            </div>
+      {/* ═══════════════════════════════════════════════
+          HOW IT WORKS
+      ═══════════════════════════════════════════════ */}
+      <FadeSection
+        className="py-20 md:py-32 border-t"
+        style={{ borderColor: "rgba(26,26,26,0.06)" }}
+      >
+        <div className="max-w-[1600px] mx-auto px-6 md:px-16">
+          <div className="text-center max-w-xl mx-auto mb-16 md:mb-20">
+            <span className="lp-overline" style={{ color: "#0d9488" }}>
+              Simple Process
+            </span>
+            <h2 className="lp-serif text-3xl md:text-5xl lg:text-6xl font-normal leading-[0.95] mt-4">
+              How It{" "}
+              <span className="italic" style={{ color: "#0d9488" }}>
+                Works
+              </span>
+            </h2>
           </div>
-        </section>
 
-        <footer
-          id="contact"
-          className="px-6 md:px-12 py-10 border-t border-[#e2e8f0] bg-white/40 relative z-10"
-        >
-          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-8 max-w-[1500px] mx-auto">
-            <div>
-              <h3 className="text-xl font-semibold text-[#0f172a]">
-                Care Line 360
-              </h3>
-              <p className="text-[#6b7280] leading-6 mt-4 max-w-[320px] text-sm">
-                A smart healthcare platform helping rural patients connect with
-                specialist doctors and access digital care more easily.
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+            {[
+              {
+                step: "01",
+                title: "Create Account",
+                desc: "Register as a patient or doctor. Set up your profile with essential medical information for personalized care.",
+                icon: Users,
+              },
+              {
+                step: "02",
+                title: "Book & Consult",
+                desc: "Browse our directory of specialist doctors, choose your preferred consultation type, and book instantly.",
+                icon: Calendar,
+              },
+              {
+                step: "03",
+                title: "Manage Health",
+                desc: "Access your medical records, prescriptions, and AI-powered insights. Track your health journey seamlessly.",
+                icon: Heart,
+              },
+            ].map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <motion.div
+                  key={i}
+                  className="text-center md:text-left"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: i * 0.2 }}
+                >
+                  <span
+                    className="lp-serif text-6xl md:text-7xl font-normal block mb-4"
+                    style={{ color: "rgba(13,148,136,0.12)" }}
+                  >
+                    {item.step}
+                  </span>
+                  <div className="flex items-center gap-3 justify-center md:justify-start mb-3">
+                    <Icon
+                      size={18}
+                      strokeWidth={1.5}
+                      style={{ color: "#0d9488" }}
+                    />
+                    <h3 className="lp-serif text-xl md:text-2xl font-normal">
+                      {item.title}
+                    </h3>
+                  </div>
+                  <p
+                    className="lp-sans text-sm leading-relaxed"
+                    style={{ color: "#6C6863" }}
+                  >
+                    {item.desc}
+                  </p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </FadeSection>
+
+      {/* ═══════════════════════════════════════════════
+          FAQ
+      ═══════════════════════════════════════════════ */}
+      <FadeSection id="faq" className="py-20 md:py-32">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            {/* Left label */}
+            <div className="lg:col-span-4">
+              <span className="lp-overline" style={{ color: "#0d9488" }}>
+                Questions
+              </span>
+              <h2 className="lp-serif text-3xl md:text-5xl font-normal leading-[0.95] mt-4 mb-4">
+                Frequently{" "}
+                <span className="italic" style={{ color: "#0d9488" }}>
+                  Asked
+                </span>
+              </h2>
+              <p
+                className="lp-sans text-sm leading-relaxed"
+                style={{ color: "#6C6863" }}
+              >
+                Can&apos;t find the answer you&apos;re looking for? Reach out to
+                our support team.
               </p>
             </div>
 
-            <div>
-              <h4 className="text-base font-semibold text-[#0f172a] mb-4">
-                Quick Links
-              </h4>
-              <div className="flex flex-col gap-3 text-[#6b7280] text-sm">
-                <a href="#home" className="hover:text-[#178d95] transition hover:-translate-y-1 duration-300">
-                  Home
-                </a>
-                <a href="#services" className="hover:text-[#178d95] transition hover:-translate-y-1 duration-300">
-                  Services
-                </a>
-                <a href="#how" className="hover:text-[#178d95] transition hover:-translate-y-1 duration-300">
-                  How It Works
-                </a>
-                <a
-                  href="#testimonials"
-                  className="hover:text-[#178d95] transition hover:-translate-y-1 duration-300"
-                >
-                  Testimonials
-                </a>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-base font-semibold text-[#0f172a] mb-4">
-                Contact
-              </h4>
-              <div className="flex flex-col gap-3 text-[#6b7280] text-sm">
-                <div className="flex items-center gap-3 hover:-translate-y-1 duration-300">
-                  <FaPhoneAlt className="text-[#178d95]" />
-                  <span>+94 77 123 4567</span>
-                </div>
-                <div className="flex items-center gap-3 hover:-translate-y-1 duration-300">
-                  <FaEnvelope className="text-[#178d95]" />
-                  <span>careline360@gmail.com</span>
-                </div>
-                <div className="flex items-center gap-3 hover:-translate-y-1 duration-300">
-                  <FaMapMarkerAlt className="text-[#178d95]" />
-                  <span>Jaffna, Sri Lanka</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-base font-semibold text-[#0f172a] mb-4">
-                Follow Us
-              </h4>
-              <div className="flex items-center gap-3">
-                <a
-                  href="/"
-                  className="w-10 h-10 rounded-full bg-[#178d95]/10 text-[#178d95] flex items-center justify-center hover:bg-[#178d95] hover:text-white transition hover:-translate-y-1 duration-300"
-                >
-                  <FaFacebookF className="text-sm" />
-                </a>
-                <a
-                  href="/"
-                  className="w-10 h-10 rounded-full bg-[#178d95]/10 text-[#178d95] flex items-center justify-center hover:bg-[#178d95] hover:text-white transition hover:-translate-y-1 duration-300"
-                >
-                  <FaInstagram className="text-sm" />
-                </a>
-                <a
-                  href="/"
-                  className="w-10 h-10 rounded-full bg-[#178d95]/10 text-[#178d95] flex items-center justify-center hover:bg-[#178d95] hover:text-white transition hover:-translate-y-1 duration-300"
-                >
-                  <FaLinkedinIn className="text-sm" />
-                </a>
-              </div>
+            {/* Right FAQ items */}
+            <div className="lg:col-span-7 lg:col-start-6">
+              {faqs.map((f, i) => (
+                <FaqItem key={i} question={f.q} answer={f.a} />
+              ))}
             </div>
           </div>
+        </div>
+      </FadeSection>
 
-          <div className="mt-8 pt-6 border-t border-[#e2e8f0] flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#6b7280] max-w-[1500px] mx-auto">
-            <p>© 2026 Care Line 360. All rights reserved.</p>
-            <p>Designed for accessible digital healthcare.</p>
-          </div>
-        </footer>
-
-        {selectedDoctor && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-md"
-            onClick={() => setSelectedDoctor(null)}
-          />
-          
-        <div
-          className="absolute left-1/2 z-50 w-full max-w-3xl px-4"
-          style={{
-            top: `${window.scrollY + window.innerHeight / 2}px`,
-            transform: "translate(-50%, -50%)",
-          }}
-        >            
-          <div className="relative w-full max-w-3xl rounded-[28px] border border-white/30 bg-white/95 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto animate-[fadeIn_.25s_ease]">
-              
-              <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-[#178d95]/15 via-[#178d95]/8 to-transparent" />
-
-              <button
-                onClick={() => setSelectedDoctor(null)}
-                className="absolute top-4 right-4 z-10 w-11 h-11 rounded-full bg-white/90 border border-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-100 transition"
+      {/* ═══════════════════════════════════════════════
+          CTA SECTION
+      ═══════════════════════════════════════════════ */}
+      <FadeSection className="lp-cta-section py-20 md:py-32">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-16 text-center">
+          <span
+            className="lp-overline"
+            style={{ color: "rgba(249,248,246,0.4)" }}
+          >
+            Get Started Today
+          </span>
+          <h2
+            className="lp-serif text-3xl md:text-5xl lg:text-7xl font-normal leading-[0.95] mt-4 mb-6"
+            style={{ color: "#F9F8F6" }}
+          >
+            Your Health Journey
+            <br />
+            <span className="italic" style={{ color: "#0d9488" }}>
+              Starts Here
+            </span>
+          </h2>
+          <p
+            className="lp-sans text-base leading-relaxed max-w-md mx-auto mb-10"
+            style={{ color: "rgba(249,248,246,0.6)" }}
+          >
+            Join thousands of patients and doctors who trust CareLine 360 for
+            modern, secure, and intelligent healthcare.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              to="/register"
+              className="lp-btn-primary"
+              style={{ background: "#0d9488", color: "#F9F8F6" }}
+            >
+              <span className="btn-gold-bg" style={{ background: "#F9F8F6" }} />
+              <span
+                className="btn-label flex items-center gap-2"
+                style={{ mixBlendMode: "difference" }}
               >
-                <FaTimes />
-              </button>
-
-              <div className="relative p-6 md:p-8">
-                <div className="flex flex-col md:flex-row gap-6">
-                  <div className="shrink-0">
-                    <img
-                      src={selectedDoctor.avatarUrl || "/default-doctor.png"}
-                      alt={selectedDoctor.fullName}
-                      className="w-28 h-28 md:w-36 md:h-36 rounded-3xl object-cover border-4 border-white shadow-md"
-                    />
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div>
-                        <h3 className="text-2xl md:text-3xl font-bold text-[#0f172a]">
-                          {selectedDoctor.fullName}
-                        </h3>
-                        <p className="text-[#178d95] mt-2 text-base md:text-lg font-medium">
-                          {selectedDoctor.specialization || "General"}
-                        </p>
-                      </div>
-
-                      <div className="mr-8 px-4 py-2 rounded-full bg-[#178d95]/10 text-[#178d95] text-sm font-semibold">
-                        Rating: {selectedDoctor.rating || 0} / 5
-                      </div>
-                    </div>
-
-                    <div className="mt-6 grid sm:grid-cols-2 gap-4 text-sm">
-                      <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                        <p className="text-slate-500 text-xs mb-1">Qualifications</p>
-                        <p className="text-slate-800 font-medium">
-                          {selectedDoctor.qualifications || "Not available"}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                        <p className="text-slate-500 text-xs mb-1">Experience</p>
-                        <p className="text-slate-800 font-medium">
-                          {selectedDoctor.experience || 0} years
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                        <p className="text-slate-500 text-xs mb-1">Consultation Fee</p>
-                        <p className="text-slate-800 font-medium">
-                          Rs. {selectedDoctor.consultationFee || 0}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                        <p className="text-slate-500 text-xs mb-1">Phone</p>
-                        <p className="text-slate-800 font-medium">
-                          {selectedDoctor.phone || "Not available"}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 sm:col-span-2">
-                        <p className="text-slate-500 text-xs mb-1">License Number</p>
-                        <p className="text-slate-800 font-medium">
-                          {selectedDoctor.licenseNumber || "Not available"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 rounded-2xl bg-[#f8fafc] border border-slate-200 p-5">
-                      <p className="font-semibold text-[#0f172a] mb-2">About Doctor</p>
-                      <p className="text-sm text-slate-600 leading-7">
-                        {selectedDoctor.bio || "No biography available."}
-                      </p>
-                    </div>
-
-                    <div className="mt-6 flex flex-wrap gap-3">
-                      <button
-                        onClick={() => handleBookDoctor(selectedDoctor)}
-                        className="px-6 py-3 rounded-full bg-[#178d95] text-white text-sm font-medium hover:bg-[#126f76] transition"
-                      >
-                        Book Now
-                      </button>
-
-                      <button
-                        onClick={() => setSelectedDoctor(null)}
-                        className="px-6 py-3 rounded-full border border-[#178d95] text-[#178d95] text-sm font-medium hover:bg-[#178d95]/5 transition"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+                Create Free Account <ArrowRight size={14} />
+              </span>
+            </Link>
+            <Link
+              to="/login"
+              className="lp-btn-secondary"
+              style={{
+                borderColor: "rgba(249,248,246,0.3)",
+                color: "#F9F8F6",
+              }}
+            >
+              Sign In
+            </Link>
           </div>
-          </>
-        )}
+        </div>
+      </FadeSection>
 
-        {selectedHospital && (
-          <>
-          <div
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-md"
-            onClick={() => setSelectedDoctor(null)}
-          />
-         
-          <div
-          className="absolute left-1/2 z-50 w-full max-w-3xl px-4 "
-          style={{
-            top: `${window.scrollY + window.innerHeight / 2}px`,
-            transform: "translate(-50%, -50%)",
-          }}
-        > 
-            <div className="relative w-full max-w-4xl rounded-[28px] border border-white/30 bg-white/95 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto animate-[fadeIn_.25s_ease]">
-              
-              <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-[#178d95]/15 via-[#178d95]/8 to-transparent" />
-
-              <button
-                onClick={() => setSelectedHospital(null)}
-                className="absolute top-4 right-4 z-10 w-11 h-11 rounded-full bg-white/90 border border-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-100 transition"
+      {/* ═══════════════════════════════════════════════
+          FOOTER
+      ═══════════════════════════════════════════════ */}
+      <footer className="lp-footer py-16 md:py-20">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-16">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
+            {/* Brand */}
+            <div className="md:col-span-4">
+              <div className="flex items-center gap-3 mb-4">
+                <img
+                  src={logo}
+                  alt="CareLine 360"
+                  className="h-10 w-auto brightness-200"
+                />
+                <span
+                  className="lp-serif text-lg font-medium"
+                  style={{ color: "#F9F8F6" }}
+                >
+                  CareLine{" "}
+                  <span style={{ color: "#0d9488", fontStyle: "italic" }}>
+                    360
+                  </span>
+                </span>
+              </div>
+              <p
+                className="lp-sans text-sm leading-relaxed"
+                style={{ color: "rgba(249,248,246,0.5)" }}
               >
-                <FaTimes />
-              </button>
+                A smart healthcare platform connecting patients with specialist
+                doctors through intelligent technology.
+              </p>
+            </div>
 
-              <div className="relative p-6 md:p-8">
-                <div className="mb-6">
-                  <h3 className="text-2xl md:text-3xl font-bold text-[#0f172a]">
-                    {selectedHospital.name}
-                  </h3>
-                  <p className="text-[#178d95] mt-2 font-medium text-base">
-                    Hospital Details
-                  </p>
-                </div>
+            {/* Links */}
+            <div className="md:col-span-2 md:col-start-6">
+              <h4
+                className="lp-overline mb-4"
+                style={{ color: "rgba(249,248,246,0.3)", fontSize: "0.6rem" }}
+              >
+                Platform
+              </h4>
+              <div className="flex flex-col gap-3">
+                <a href="#features">Features</a>
+                <a href="#about">About</a>
+                <a href="#testimonials">Testimonials</a>
+                <a href="#faq">FAQ</a>
+              </div>
+            </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                      <p className="text-slate-500 text-xs mb-1">Address</p>
-                      <p className="text-slate-800 font-medium">
-                        {selectedHospital.address || "Not available"}
-                      </p>
-                    </div>
+            <div className="md:col-span-2">
+              <h4
+                className="lp-overline mb-4"
+                style={{ color: "rgba(249,248,246,0.3)", fontSize: "0.6rem" }}
+              >
+                Access
+              </h4>
+              <div className="flex flex-col gap-3">
+                <Link to="/login">Sign In</Link>
+                <Link to="/register">Register</Link>
+              </div>
+            </div>
 
-                    <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                      <p className="text-slate-500 text-xs mb-1">Contact</p>
-                      <p className="text-slate-800 font-medium">
-                        {selectedHospital.contact || "Not available"}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                        <p className="text-slate-500 text-xs mb-1">Latitude</p>
-                        <p className="text-slate-800 font-medium">
-                          {selectedHospital.lat || "Not available"}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                        <p className="text-slate-500 text-xs mb-1">Longitude</p>
-                        <p className="text-slate-800 font-medium">
-                          {selectedHospital.lng || "Not available"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {selectedHospital.lat && selectedHospital.lng && (
-                      <a
-                        href={`https://www.google.com/maps?q=${selectedHospital.lat},${selectedHospital.lng}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex text-[#178d95] font-medium hover:underline"
-                      >
-                        Open in Google Maps
-                      </a>
-                    )}
-
-                    <div className="pt-2 flex flex-wrap gap-3">
-                      <button
-                        onClick={() => handleBookHospital(selectedHospital)}
-                        className="px-6 py-3 rounded-full bg-[#178d95] text-white text-sm font-medium hover:bg-[#126f76] transition"
-                      >
-                        Book Now
-                      </button>
-
-                      <button
-                        onClick={() => setSelectedHospital(null)}
-                        className="px-6 py-3 rounded-full border border-[#178d95] text-[#178d95] text-sm font-medium hover:bg-[#178d95]/5 transition"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="rounded-3xl overflow-hidden border border-slate-200 min-h-[320px] bg-slate-50 shadow-sm">
-                    {selectedHospital.lat && selectedHospital.lng ? (
-                      <iframe
-                        title="Hospital Location Map"
-                        src={getMapEmbedUrl(selectedHospital.lat, selectedHospital.lng)}
-                        width="100%"
-                        height="100%"
-                        className="w-full min-h-[320px]"
-                        loading="lazy"
-                        allowFullScreen
-                        referrerPolicy="no-referrer-when-downgrade"
-                      />
-                    ) : (
-                      <div className="h-full min-h-[320px] flex items-center justify-center text-sm text-slate-500 p-6 text-center">
-                        Location map not available for this hospital.
-                      </div>
-                    )}
-                  </div>
-                </div>
+            <div className="md:col-span-2">
+              <h4
+                className="lp-overline mb-4"
+                style={{ color: "rgba(249,248,246,0.3)", fontSize: "0.6rem" }}
+              >
+                Legal
+              </h4>
+              <div className="flex flex-col gap-3">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
               </div>
             </div>
           </div>
-          </>
-        )}
-      </section>
+
+          {/* Bottom bar */}
+          <div
+            className="border-t pt-8 flex flex-col md:flex-row justify-between items-center gap-4"
+            style={{ borderColor: "rgba(249,248,246,0.08)" }}
+          >
+            <p
+              className="lp-sans"
+              style={{ color: "rgba(249,248,246,0.3)", fontSize: "0.7rem" }}
+            >
+              © {new Date().getFullYear()} CareLine 360. All rights reserved.
+            </p>
+            <p
+              className="lp-sans"
+              style={{
+                color: "rgba(249,248,246,0.2)",
+                fontSize: "0.6rem",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+              }}
+            >
+              Designed with care
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

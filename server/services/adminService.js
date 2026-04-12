@@ -366,6 +366,17 @@ const createUser = async (userData) => {
   if (!email && !phone)
     return { status: 400, data: { message: "Email or phone required" } };
 
+  // Validate email format if provided
+  if (email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email))
+      return { status: 400, data: { message: "Invalid email format" } };
+  }
+
+  // Validate password strength
+  if (!password || password.length < 8)
+    return { status: 400, data: { message: "Password must be at least 8 characters" } };
+
   const existing = await User.findOne(
     email ? { email: email.toLowerCase() } : { phone },
   );
@@ -496,6 +507,21 @@ const updateUser = async (userId, updates) => {
   const user = await User.findById(userId);
   if (!user) return { status: 404, data: { message: "User not found" } };
 
+  // Validate email format if being updated
+  if (updates.email !== undefined) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(updates.email))
+      return { status: 400, data: { message: "Invalid email format" } };
+
+    // Check for email uniqueness (exclude current user)
+    const emailExists = await User.findOne({
+      email: updates.email.toLowerCase(),
+      _id: { $ne: userId },
+    });
+    if (emailExists)
+      return { status: 409, data: { message: "Email already in use by another user" } };
+  }
+
   // Update allowed fields on User model
   if (updates.fullName !== undefined) user.fullName = updates.fullName;
   if (updates.email !== undefined) user.email = updates.email.toLowerCase();
@@ -613,8 +639,20 @@ const resetUserPassword = async (userId, customPassword) => {
 
 // ─── Report Generation ──────────────────────────────────────
 const generateReport = async ({ category, fromDate, toDate }) => {
+  // Validate required fields
+  if (!category || !fromDate || !toDate)
+    return { status: 400, data: { message: "category, fromDate, and toDate are required" } };
+
   const from = new Date(fromDate);
   const to = new Date(toDate);
+
+  // Validate date values
+  if (isNaN(from.getTime()) || isNaN(to.getTime()))
+    return { status: 400, data: { message: "Invalid date format for fromDate or toDate" } };
+
+  if (from > to)
+    return { status: 400, data: { message: "fromDate must be before or equal to toDate" } };
+
   to.setHours(23, 59, 59, 999);
   const dateFilter = { $gte: from, $lte: to };
   const days = Math.ceil((to - from) / (1000 * 60 * 60 * 24));

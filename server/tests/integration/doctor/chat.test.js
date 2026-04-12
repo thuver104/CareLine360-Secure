@@ -4,12 +4,11 @@ const express = require("express");
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
 
-const User = require("../../models/User");
-const Appointment = require("../../models/Appointment");
-const ChatMessage = require("../../models/ChatMessage");
-const chatRoutes = require("../../routes/chatRoutes");
-const { authMiddleware } = require("../../middleware/auth");
-const errorHandler = require("../../middleware/errorHandler");
+const User = require("../../../models/User");
+const Appointment = require("../../../models/Appointment");
+const ChatMessage = require("../../../models/ChatMessage");
+const chatRoutes = require("../../../routes/chatRoutes");
+const errorHandler = require("../../../middleware/errorHandler");
 
 let mongoServer, app;
 let patient, doctor, appointment, patientToken;

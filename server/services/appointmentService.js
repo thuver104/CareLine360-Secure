@@ -105,12 +105,24 @@ const getAppointments = async (filters = {}) => {
 };
 
 const getAppointmentById = async (id) => {
-  const appointment = await Appointment.findById(id).populate("patient doctor");
+  const appointment = await Appointment.findById(id).populate("patient doctor").lean();
   if (!appointment) {
     const error = new Error("Appointment not found");
     error.statusCode = 404;
     throw error;
   }
+
+  // Enrich with Doctor profile (fullName, specialization, avatarUrl) from Doctor model
+  if (appointment.doctor?._id) {
+    const Doctor = require("../models/Doctor");
+    const doctorProfile = await Doctor.findOne({ userId: appointment.doctor._id, isDeleted: false })
+      .select("fullName specialization avatarUrl doctorId")
+      .lean();
+    if (doctorProfile) {
+      appointment.doctorProfile = doctorProfile;
+    }
+  }
+
   return appointment;
 };
 
