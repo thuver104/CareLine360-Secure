@@ -108,6 +108,8 @@ httpServer.listen(PORT, () =>
 
 // Handle unhandled promise rejections
 process.on("unhandledRejection", (err) => {
-  console.log(`Error: ${err.message}`);
-  httpServer.close(() => process.exit(1));
+  console.error("Unhandled Rejection:", err.message);
+  if (process.env.NODE_ENV === "production") {
+    httpServer.close(() => process.exit(1));
+  }
 });
