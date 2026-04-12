@@ -16,6 +16,7 @@ const {
 } = require("../validators/doctorValidator");
 
 const {
+  getDoctorPublicById,
   createProfile,
   getProfile,
   updateProfile,
@@ -53,6 +54,7 @@ const router = express.Router();
 
 // ── Public ────────────────────────────────────────────────────────────────────
 router.get("/public", listDoctors);
+router.get("/public/:id", getDoctorPublicById);
 
 // ── Doctor-only protected ─────────────────────────────────────────────────────
 const doctorAuth = [authMiddleware, roleMiddleware(["doctor"])];

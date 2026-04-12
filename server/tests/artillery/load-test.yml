@@ -1,5 +1,5 @@
 config:
-  target: "http://localhost:6000"
+  target: "http://localhost:1111"
   phases:
     - duration: 30
       arrivalRate: 5
@@ -13,19 +13,143 @@ config:
   defaults:
     headers:
       Content-Type: "application/json"
+  variables:
+    patientToken: "Bearer {{ $processEnvironment.ARTILLERY_PATIENT_TOKEN }}"
+    doctorToken: "Bearer {{ $processEnvironment.ARTILLERY_DOCTOR_TOKEN }}"
 
 scenarios:
-  - name: "List appointments"
-    flow:
-      - get:
-          url: "/api/appointments"
-
-  - name: "Get users"
+  # ── Public endpoints (no auth) ──────────────────────────
+  - name: "List users"
+    weight: 5
     flow:
       - get:
           url: "/api/users"
 
-  - name: "Get doctors"
+  - name: "List doctors (public)"
+    weight: 5
     flow:
       - get:
-          url: "/api/users?role=doctor"
+          url: "/api/doctor/public"
+
+  - name: "List hospitals"
+    weight: 3
+    flow:
+      - get:
+          url: "/api/hospitals"
+
+  # ── Patient: Appointment CRUD ───────────────────────────
+  - name: "Patient: List appointments"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/appointments?page=1&limit=10"
+          headers:
+            Authorization: "{{ patientToken }}"
+
+  - name: "Patient: Appointment stats"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/appointments/stats"
+          headers:
+            Authorization: "{{ patientToken }}"
+
+  - name: "Patient: Create and cancel appointment"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/appointments"
+          headers:
+            Authorization: "{{ patientToken }}"
+          json:
+            doctor: "699ac04a6c6832b033cd6636"
+            date: "2026-06-15"
+            time: "14:00"
+            consultationType: "in-person"
+            priority: "normal"
+            reason: "Artillery load test"
+          capture:
+            - json: "$.data._id"
+              as: "newAppointmentId"
+      - patch:
+          url: "/api/appointments/{{ newAppointmentId }}/cancel"
+          headers:
+            Authorization: "{{ patientToken }}"
+          json:
+            reason: "Load test cleanup"
+
+  # ── Patient: Chat ───────────────────────────────────────
+  - name: "Patient: Get chat messages"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/chat/699a5efbfd5f9e9ce9aed350"
+          headers:
+            Authorization: "{{ patientToken }}"
+
+  - name: "Patient: Unread count"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/chat/unread/count"
+          headers:
+            Authorization: "{{ patientToken }}"
+
+  - name: "Patient: Chat inbox"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/chat/inbox"
+          headers:
+            Authorization: "{{ patientToken }}"
+
+  # ── Patient: Payments ───────────────────────────────────
+  - name: "Patient: Get payment by appointment"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/payments/appointment/699a5efbfd5f9e9ce9aed350"
+          headers:
+            Authorization: "{{ patientToken }}"
+
+  # ── Doctor: Appointments ────────────────────────────────
+  - name: "Doctor: List appointments"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/doctor/appointments?page=1&limit=10"
+          headers:
+            Authorization: "{{ doctorToken }}"
+
+  - name: "Doctor: Dashboard"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/doctor/dashboard"
+          headers:
+            Authorization: "{{ doctorToken }}"
+
+  - name: "Doctor: List patients"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/doctor/patients"
+          headers:
+            Authorization: "{{ doctorToken }}"
+
+  # ── Mixed: Paginated listing with filters ───────────────
+  - name: "Filtered appointment listing"
+    weight: 7
+    flow:
+      - get:
+          url: "/api/appointments?status=confirmed&page=1&limit=5"
+          headers:
+            Authorization: "{{ patientToken }}"
+      - get:
+          url: "/api/appointments?status=pending&page=1&limit=5"
+          headers:
+            Authorization: "{{ patientToken }}"
+      - get:
+          url: "/api/appointments?status=completed&page=1&limit=5"
+          headers:
+            Authorization: "{{ patientToken }}"

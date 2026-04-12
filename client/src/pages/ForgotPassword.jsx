@@ -1,14 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { api } from "../api/axios";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
   Mail,
-  KeyRound,
-  Lock,
-  Eye,
-  EyeOff,
   ArrowRight,
 } from "lucide-react";
 
@@ -17,68 +13,62 @@ import forgotImg from "../assets/images/forgotten_password_image.png";
 
 import "./Auth.css";
 
-export default function ResetPassword() {
+export default function ForgotPassword() {
   const nav = useNavigate();
-  const location = useLocation();
 
-  const [identifier, setIdentifier] = useState(
-    location.state?.identifier || localStorage.getItem("resetIdentifier") || ""
-  );
-
-  const [otp, setOtp] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-
+  const [identifier, setIdentifier] = useState("");
   const [msg, setMsg] = useState("");
+  const [msgType, setMsgType] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (identifier) {
-      localStorage.setItem("resetIdentifier", identifier);
-    }
-  }, [identifier]);
-
-  const reset = async () => {
+  const sendOtp = async (e) => {
+    e.preventDefault();
     setMsg("");
+    setMsgType("");
 
-    if (!otp || otp.length !== 6) {
-      setMsg("OTP must be 6 digits");
-      return;
-    }
+    const cleanIdentifier = identifier.trim();
 
-    if (!newPassword) {
-      setMsg("New password is required");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setMsg("Passwords do not match");
+    if (!cleanIdentifier) {
+      setMsg("Email is required");
+      setMsgType("error");
       return;
     }
 
     try {
       setLoading(true);
 
-      const res = await api.post("/auth/password/reset", {
-        identifier,
-        otp,
-        newPassword,
+      const res = await api.post("/auth/password/forgot", {
+        identifier: cleanIdentifier,
       });
 
-      setMsg(res.data?.message || "Password reset successful");
+      localStorage.setItem("resetIdentifier", cleanIdentifier);
 
-      localStorage.removeItem("resetIdentifier");
+      setMsg(res.data?.message || "OTP sent to your email");
+      setMsgType("success");
 
-      setTimeout(() => nav("/login"), 800);
-    } catch (e) {
-      setMsg(e.response?.data?.message || "Reset failed");
+      setTimeout(() => {
+        nav("/reset-password", {
+          state: { identifier: cleanIdentifier },
+        });
+      }, 700);
+    } catch (err) {
+      setMsg(
+        err.response?.data?.message ||
+          err.response?.data?.errors?.[0]?.msg ||
+          "Failed to send OTP"
+      );
+      setMsgType("error");
     } finally {
       setLoading(false);
     }
   };
+
+  const msgClass =
+    msgType === "success"
+      ? "auth-msg auth-msg--success"
+      : msgType === "error"
+      ? "auth-msg auth-msg--error"
+      : "auth-msg auth-msg--info";
 
   return (
     <div className="auth-page auth-page--reversed">
@@ -118,18 +108,18 @@ export default function ResetPassword() {
           </div>
 
           {/* Header */}
-          <span className="auth-overline">Secure Reset</span>
+          <span className="auth-overline">Account Recovery</span>
           <h1 className="auth-title">
-            Reset <span className="auth-title-accent">Password</span>
+            Forgot <span className="auth-title-accent">Password</span>
           </h1>
           <p className="auth-subtitle">
-            Enter the OTP sent to your email and set a new password
+            Enter your email to receive an OTP for password reset
           </p>
 
-          {/* Error */}
+          {/* Message */}
           {msg && (
             <motion.div
-              className="auth-msg auth-msg--error"
+              className={msgClass}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
             >
@@ -138,8 +128,7 @@ export default function ResetPassword() {
           )}
 
           {/* Form */}
-          <div>
-            {/* Identifier */}
+          <form onSubmit={sendOtp}>
             <div className="auth-form-group">
               <label className="auth-label" htmlFor="fp-identifier">
                 Email or Phone
@@ -148,6 +137,7 @@ export default function ResetPassword() {
                 <input
                   id="fp-identifier"
                   className="auth-input"
+                  placeholder="Enter your email or phone"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                 />
@@ -155,106 +145,25 @@ export default function ResetPassword() {
               </div>
             </div>
 
-            {/* OTP */}
-            <div className="auth-form-group">
-              <label className="auth-label" htmlFor="fp-otp">
-                OTP Code
-              </label>
-              <div className="auth-input-wrapper">
-                <input
-                  id="fp-otp"
-                  className="auth-input"
-                  placeholder="6-digit code"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  maxLength={6}
-                />
-                <KeyRound size={15} strokeWidth={1.5} className="auth-input-icon" />
-              </div>
-            </div>
-
-            {/* New Password */}
-            <div className="auth-form-group">
-              <label className="auth-label" htmlFor="fp-newpw">
-                New Password
-              </label>
-              <div className="auth-input-wrapper">
-                <input
-                  id="fp-newpw"
-                  className="auth-input"
-                  placeholder="e.g., NewPass@1234"
-                  type={showNew ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  style={{ paddingRight: "3rem" }}
-                />
-                <Lock size={15} strokeWidth={1.5} className="auth-input-icon" />
-                <button
-                  type="button"
-                  onClick={() => setShowNew(!showNew)}
-                  className="auth-pw-toggle"
-                  aria-label={showNew ? "Hide password" : "Show password"}
-                >
-                  {showNew ? (
-                    <EyeOff size={15} strokeWidth={1.5} />
-                  ) : (
-                    <Eye size={15} strokeWidth={1.5} />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Confirm Password */}
-            <div className="auth-form-group">
-              <label className="auth-label" htmlFor="fp-confirm">
-                Confirm Password
-              </label>
-              <div className="auth-input-wrapper">
-                <input
-                  id="fp-confirm"
-                  className="auth-input"
-                  placeholder="Re-enter new password"
-                  type={showConfirm ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  style={{ paddingRight: "3rem" }}
-                />
-                <Lock size={15} strokeWidth={1.5} className="auth-input-icon" />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="auth-pw-toggle"
-                  aria-label={showConfirm ? "Hide password" : "Show password"}
-                >
-                  {showConfirm ? (
-                    <EyeOff size={15} strokeWidth={1.5} />
-                  ) : (
-                    <Eye size={15} strokeWidth={1.5} />
-                  )}
-                </button>
-              </div>
-            </div>
-
             <button
-              type="button"
+              type="submit"
               disabled={loading}
-              onClick={reset}
               className="auth-submit-btn"
             >
               <span className="btn-slide-bg" />
               <span className="btn-text">
                 {loading ? (
                   <>
-                    <span className="auth-spinner" /> Resetting…
+                    <span className="auth-spinner" /> Sending…
                   </>
                 ) : (
                   <>
-                    Reset Password <ArrowRight size={14} />
+                    Send OTP <ArrowRight size={14} />
                   </>
                 )}
               </span>
             </button>
-          </div>
+          </form>
 
           {/* Divider */}
           <div className="auth-divider">

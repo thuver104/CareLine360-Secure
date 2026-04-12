@@ -9,6 +9,26 @@ const getAllHospitals = async (req, res, next) => {
     }
 };
 
+const getHospitalByIdPublic = async (req, res, next) => {
+  try {
+    const hospital = await Hospital.findOne({
+      _id: req.params.id,
+      isActive: true,
+    });
+
+    if (!hospital) {
+      return res.status(404).json({
+        success: false,
+        message: "Hospital not found",
+      });
+    }
+
+    res.status(200).json({ success: true, data: hospital });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const createHospital = async (req, res, next) => {
     try {
         const { name, address, contact, lat, lng } = req.body;
@@ -45,6 +65,7 @@ const deleteHospital = async (req, res, next) => {
 
 module.exports = {
     getAllHospitals,
+    getHospitalByIdPublic,
     createHospital,
     deleteHospital
 };

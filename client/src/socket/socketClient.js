@@ -1,8 +1,7 @@
 import { io } from "socket.io-client";
 
-const SOCKET_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:1111"
-).replace("/api", "");
+// Strip /api suffix — socket.io connects to the root, not the API path
+const SOCKET_URL = (import.meta.env.VITE_API_URL || "http://localhost:1111").replace(/\/api\/?$/, "");
 
 let socket = null;
 

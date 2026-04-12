@@ -66,6 +66,7 @@ const getMessages = async ({
     const skip = (Number(page) - 1) * Number(limit);
     const total = await ChatMessage.countDocuments({ appointmentId });
     const messages = await ChatMessage.find({ appointmentId })
+      .populate("senderId", "fullName email phone")
       .sort({ createdAt: 1 })
       .skip(skip)
       .limit(Number(limit))

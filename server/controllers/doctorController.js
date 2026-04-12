@@ -8,6 +8,27 @@ const {
   getMeetingUrl,
 } = require("../services/meetingScheduler");
 
+// public single doctor details
+const getDoctorPublicById = async (req, res) => {
+  try {
+    const doctor = await Doctor.findOne({
+      _id: req.params.id,
+      isDeleted: { $ne: true },
+    }).select(
+      "fullName specialization phone avatarUrl qualifications experience bio consultationFee rating totalRatings availabilitySlots doctorId licenseNumber"
+    );
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    return res.status(200).json({ success: true, data: doctor });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch doctor details" });
+  }
+};
+
+
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
 const createProfile = async (req, res, next) => {
@@ -525,6 +546,7 @@ const sendTestEmail = async (req, res, next) => {
 };
 
 module.exports = {
+  getDoctorPublicById,
   createProfile,
   getProfile,
   updateProfile,

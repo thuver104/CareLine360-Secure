@@ -25,9 +25,13 @@ export default function Login() {
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [canReactivate, setCanReactivate] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
+
   const submit = async (e) => {
     e.preventDefault();
     setMsg("");
+    setCanReactivate(false);
 
     try {
       setLoading(true);
@@ -46,10 +50,46 @@ export default function Login() {
       else if (role === "responder") nav("/admin/dashboard/emergencies");
       else nav("/");
     } catch (err) {
-      const apiMsg = err.response?.data?.message;
-      setMsg(apiMsg || "Login failed");
+      const apiMsg = err.response?.data?.message || "Login failed";
+      setMsg(apiMsg);
+
+      // show reactivate button when backend says account inactive
+      const m = apiMsg.toLowerCase();
+      if (
+        m.includes("deactiv") ||
+        m.includes("inactive") ||
+        m.includes("suspend") ||
+        m.includes("disabled")
+      ) {
+        setCanReactivate(true);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    setMsg("");
+
+    if (!identifier.trim() || !password) {
+      setMsg("Enter email/phone and password to reactivate.");
+      return;
+    }
+
+    try {
+      setReactivating(true);
+
+      const res = await api.post("/auth/reactivate", {
+        identifier: identifier.trim(),
+        password,
+      });
+
+      setMsg(res.data?.message || "Account reactivated. Now login again.");
+      setCanReactivate(false);
+    } catch (err) {
+      setMsg(err.response?.data?.message || "Reactivate failed");
+    } finally {
+      setReactivating(false);
     }
   };
 
@@ -174,6 +214,30 @@ export default function Login() {
                 )}
               </span>
             </button>
+
+            {/* Reactivate */}
+            {canReactivate && (
+              <button
+                type="button"
+                onClick={handleReactivate}
+                disabled={reactivating}
+                className="auth-submit-btn"
+                style={{ marginTop: "0.75rem" }}
+              >
+                <span className="btn-slide-bg" />
+                <span className="btn-text">
+                  {reactivating ? (
+                    <>
+                      <span className="auth-spinner" /> Reactivating…
+                    </>
+                  ) : (
+                    <>
+                      Reactivate Account <ArrowRight size={14} />
+                    </>
+                  )}
+                </span>
+              </button>
+            )}
           </form>
 
           {/* Divider */}

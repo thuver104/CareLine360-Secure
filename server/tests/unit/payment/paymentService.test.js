@@ -18,7 +18,7 @@ describe("Payment Service", () => {
         _id: new mongoose.Types.ObjectId(),
         appointment: new mongoose.Types.ObjectId(),
         patient: new mongoose.Types.ObjectId(),
-        amount: 50,
+        amount: 3500,
         status: "pending",
         populate: jest.fn().mockReturnThis(),
       };
@@ -29,10 +29,10 @@ describe("Payment Service", () => {
       const result = await paymentService.createPayment({
         appointment: mockPayment.appointment,
         patient: mockPayment.patient,
-        amount: 50,
+        amount: 3500,
       });
 
-      expect(result.amount).toBe(50);
+      expect(result.amount).toBe(3500);
       expect(result.status).toBe("pending");
       expect(Payment.create).toHaveBeenCalled();
     });
