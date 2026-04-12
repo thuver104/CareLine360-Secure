@@ -29,7 +29,7 @@ describe("Payment Validators", () => {
     const validBody = () => ({
       appointment: new mongoose.Types.ObjectId().toString(),
       patient: new mongoose.Types.ObjectId().toString(),
-      amount: 50,
+      amount: 3500,
     });
 
     it("should pass with all valid fields", async () => {

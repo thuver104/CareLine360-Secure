@@ -12,7 +12,8 @@ const {
   getMyProfile , 
   updateMyProfile , 
   uploadAvatar, 
-  deactivateMyAccount , 
+  removeAvatar,
+  deactivateMyAccount ,
   explainMedicalText,
 
   getMyMedicalRecords,
@@ -50,6 +51,13 @@ router.patch(
   roleMiddleware(["patient"]),
   imageUpload.single("avatar"),
   uploadAvatar
+);
+
+router.delete(
+  "/me/avatar",
+  authMiddleware,
+  roleMiddleware(["patient"]),
+  removeAvatar
 );
 
 router.patch(

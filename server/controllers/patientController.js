@@ -4,6 +4,9 @@ const MedicalRecord = require("../models/MedicalRecord");
 const Prescription = require("../models/Prescription");
 const Doctor = require("../models/Doctor");
 const Hospital = require("../models/Hospital");
+const bcrypt = require("bcryptjs");
+const EmergencyCase = require("../models/EmergencyCase");
+
 const { calcPatientProfileStrength } = require("../services/profileStrength");
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -160,6 +163,28 @@ const uploadAvatar = async (req, res, next) => {
   }
 };
 
+const removeAvatar = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const patient = await Patient.findOneAndUpdate(
+      {
+        userId,
+        $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }],
+      },
+      { $set: { avatarUrl: null } },
+      { new: true }
+    );
+
+    if (!patient) return res.status(404).json({ message: "Profile not found" });
+
+    return res.json({ message: "Avatar removed", avatarUrl: null });
+  } catch (e) {
+    console.error("REMOVE AVATAR ERROR ❌", e);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
 const deactivateMyAccount = async (req, res, next) => {
   try {
     const userId = req.user.userId;
@@ -189,6 +214,39 @@ const deactivateMyAccount = async (req, res, next) => {
     return res.json({ message: "Account deactivated successfully" });
   } catch (e) {
     next(e);
+  }
+};
+
+const reactivateAccount = async (req, res) => {
+  try {
+    const { identifier, password } = req.body;
+
+    if (!identifier || !password) {
+      return res.status(400).json({ message: "identifier and password required" });
+    }
+
+    const user = await User.findOne({
+      $or: [{ email: identifier.toLowerCase() }, { phone: identifier }],
+    });
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) return res.status(401).json({ message: "Invalid credentials" });
+
+    user.isActive = true;
+    user.status = "ACTIVE";
+    await user.save();
+
+    await Patient.findOneAndUpdate(
+      { userId: user._id },
+      { $set: { isDeleted: false } }
+    );
+
+    return res.json({ message: "Account reactivated successfully" });
+  } catch (e) {
+    console.error("REACTIVATE ERROR:", e);
+    return res.status(500).json({ message: e.message || "Server error" });
   }
 };
 
@@ -436,6 +494,8 @@ module.exports = {
   updateMyProfile,
   uploadAvatar,
   deactivateMyAccount,
+  reactivateAccount,
+  removeAvatar,
   medicalRecord,
   explainMedicalText,
   getMyMedicalRecords,

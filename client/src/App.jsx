@@ -27,6 +27,7 @@ import PatientNavbar from "./pages/patient/components/PatientNavbar";
 import AiChat from "./pages/patient/AiChat";
 import PatientMedicalHistory from "./pages/patient/PatientMedicalHistory";
 import Directory from "./pages/patient/Directory";
+import AboutUs from "./pages/AboutUs";
 
 // Doctor Pages
 import DashboardPage from "./pages/doctor/DashboardPage";
@@ -73,6 +74,7 @@ export default function App() {
       <Routes>
         {/* ================= PUBLIC ROUTES ================= */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/about" element={<AboutUs />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/verify-email" element={<VerifyEmail />} />

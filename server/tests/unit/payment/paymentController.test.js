@@ -19,11 +19,11 @@ describe("Payment Controller", () => {
 
   describe("createPayment", () => {
     it("should create payment and return 201", async () => {
-      const req = { body: { appointment: "appt1", patient: "p1", amount: 50 } };
+      const req = { body: { appointment: "appt1", patient: "p1", amount: 3500 } };
       const res = mockRes();
       const next = jest.fn();
 
-      const mockPayment = { _id: "pay1", amount: 50, status: "pending" };
+      const mockPayment = { _id: "pay1", amount: 3500, status: "pending" };
       paymentService.createPayment.mockResolvedValue(mockPayment);
 
       await controller.createPayment(req, res, next);
@@ -55,7 +55,7 @@ describe("Payment Controller", () => {
       const res = mockRes();
       const next = jest.fn();
 
-      const mockPayment = { _id: "pay1", amount: 50 };
+      const mockPayment = { _id: "pay1", amount: 3500 };
       paymentService.getPaymentById.mockResolvedValue(mockPayment);
 
       await controller.getPaymentById(req, res, next);

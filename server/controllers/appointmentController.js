@@ -77,6 +77,15 @@ const cancelAppointment = async (req, res, next) => {
   }
 };
 
+const getAppointmentStats = async (req, res, next) => {
+  try {
+    const stats = await appointmentService.getAppointmentStats(req.user.userId, req.user.role);
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createAppointment,
   getAppointments,
@@ -86,4 +95,5 @@ module.exports = {
   transitionStatus,
   rescheduleAppointment,
   cancelAppointment,
+  getAppointmentStats,
 };

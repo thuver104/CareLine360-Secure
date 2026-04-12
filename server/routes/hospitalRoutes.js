@@ -3,13 +3,15 @@ const router = express.Router();
 const {
     getAllHospitals,
     createHospital,
-    deleteHospital
+    deleteHospital,
+    getHospitalByIdPublic
 } = require('../controllers/hospitalController');
 const { authMiddleware, roleMiddleware } = require('../middleware/auth');
 
 // Public or Protected? 
 // Admin only for management, but maybe public/patient for viewing
 router.get('/', getAllHospitals);
+router.get("/:id", getHospitalByIdPublic);
 
 // Only admins can add/delete
 router.post('/', authMiddleware, roleMiddleware(['admin']), createHospital);

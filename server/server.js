@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv").config({ override: true });
 
 const express = require("express");
 const cors = require("cors");
@@ -7,7 +7,6 @@ const http = require("http");
 const { Server } = require("socket.io");
 const connectDB = require("./config/db");
 const errorHandler = require("./middleware/errorHandler");
-const chatService = require("./services/chatService");
 
 // Routes
 const authRoutes = require("./routes/authRoutes");
@@ -67,7 +66,7 @@ app.get("/", (req, res) => res.send("CareLine360 API ✅"));
 
 // ── Multer / Cloudinary / File Upload Error Handler ────────────────────────────
 app.use((err, req, res, next) => {
-  console.error("APP ERROR:", err);
+  if (!err.statusCode || err.statusCode >= 500) console.error("APP ERROR:", err);
   if (err?.message?.includes("Only image files allowed"))
     return res.status(400).json({ message: "Only image files allowed" });
   if (err?.message?.includes("Only PDF, images, DOC, DOCX allowed"))
@@ -95,24 +94,8 @@ const io = new Server(httpServer, {
   },
 });
 
-// Register structured socket event handlers (doctor-module)
+// Register structured socket event handlers
 registerSocketHandlers(io);
-
-// Inline socket handlers (dev)
-io.on("connection", (socket) => {
-  socket.on("joinRoom", (appointmentId) => {
-    socket.join(appointmentId);
-  });
-
-  socket.on("sendMessage", async (data) => {
-    try {
-      const message = await chatService.sendMessage(data);
-      io.to(data.appointment).emit("newMessage", message);
-    } catch (err) {
-      socket.emit("error", { message: "Failed to send message" });
-    }
-  });
-});
 
 // Make io accessible in routes/controllers if needed
 app.set("io", io);
@@ -125,6 +108,8 @@ httpServer.listen(PORT, () =>
 
 // Handle unhandled promise rejections
 process.on("unhandledRejection", (err) => {
-  console.log(`Error: ${err.message}`);
-  httpServer.close(() => process.exit(1));
+  console.error("Unhandled Rejection:", err.message);
+  if (process.env.NODE_ENV === "production") {
+    httpServer.close(() => process.exit(1));
+  }
 });

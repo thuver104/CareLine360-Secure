@@ -2,6 +2,22 @@ const Appointment = require("../models/Appointment");
 const User = require("../models/User");
 const emailService = require("./emailService");
 
+const getAppointmentStats = async (userId, role) => {
+  const match = {};
+  if (role === "patient") match.patient = userId;
+  if (role === "doctor") match.doctor = userId;
+
+  const [total, pending, confirmed, completed, cancelled] = await Promise.all([
+    Appointment.countDocuments(match),
+    Appointment.countDocuments({ ...match, status: "pending" }),
+    Appointment.countDocuments({ ...match, status: "confirmed" }),
+    Appointment.countDocuments({ ...match, status: "completed" }),
+    Appointment.countDocuments({ ...match, status: "cancelled" }),
+  ]);
+
+  return { total, pending, confirmed, completed, cancelled };
+};
+
 const VALID_TRANSITIONS = {
   pending: ["confirmed", "cancelled"],
   confirmed: ["completed", "cancelled"],
@@ -263,4 +279,5 @@ module.exports = {
   transitionStatus,
   rescheduleAppointment,
   cancelAppointment,
+  getAppointmentStats,
 };
