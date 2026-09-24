@@ -234,6 +234,21 @@ const reactivateAccount = async (req, res) => {
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return res.status(401).json({ message: "Invalid credentials" });
 
+    // Only a self-deactivated account may reactivate itself.
+    // Admin-suspended and pending-approval accounts must go through
+    // the admin approval flow, not this endpoint (CWE-284 fix).
+    if (user.status === "PENDING") {
+      return res.status(403).json({
+        message: "Your account is pending admin approval and cannot be self-activated.",
+      });
+    }
+
+    if (user.status !== "SUSPENDED" && user.status !== "REJECTED") {
+      return res.status(403).json({
+        message: "This account cannot be self-reactivated. Please contact support or wait for admin approval.",
+      });
+    }
+
     user.isActive = true;
     user.status = "ACTIVE";
     await user.save();
