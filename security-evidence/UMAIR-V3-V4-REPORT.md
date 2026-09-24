@@ -10,8 +10,11 @@ All results below were produced in this repository with synthetic accounts in an
 |---|---|
 | Working branch | `umair/v3-v4-auth-socket` (pushed to `origin`) |
 | Base (pre-fix, includes the team's V2 fix) | `e5f31a9` from `integration-branch` |
-| V3 + V4 code fixes, V3/V4 evidence, V3 tests | `0e996c0` (message "baseline evidence") |
-| Payment 4xx handling fix, V4 tests, READMEs, updated evidence scripts, e2e check | **not yet committed**: add the commit hash here once committed |
+| V3 + V4 code fixes, V3/V4 evidence, V3 tests | `0e996c0` (message "baseline evidence"; contains the fixes) |
+| V3 payment 403/4xx handling fix + test harness update | `c80414f` |
+| V4 Socket.IO authorization tests + V4 README | `d8f51c6` |
+| This report, end-to-end check, evidence script `SERVER_DIR` option | `bf18e48` |
+| Merge into `integration-branch` | see the integration merge commit on `origin/integration-branch` |
 
 ---
 
