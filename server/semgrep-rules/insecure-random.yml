@@ -1,0 +1,11 @@
+rules:
+  - id: insecure-random-for-security
+    languages: [javascript]
+    severity: WARNING
+    message: >-
+      Math.random() is not cryptographically secure (CWE-338).
+      Do not use it for OTPs, tokens or passwords. Use crypto.randomInt() instead.
+    metadata:
+      cwe: "CWE-338: Use of Cryptographically Weak PRNG"
+      owasp: "A07:2021 - Identification and Authentication Failures"
+    pattern: Math.random()
