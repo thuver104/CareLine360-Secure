@@ -2,37 +2,61 @@ const Document = require("../models/Document");
 const Patient = require("../models/Patient");
 const cloudinary = require("../config/cloudinary");
 
-// ✅ always open the secure_url we saved
+// always open the secure_url we saved
 const buildViewUrl = (doc) => doc.fileUrl;
+
+
+
+const uploadBufferToCloudinary = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: "careline360/documents",
+        resource_type: "auto",
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    );
+
+    uploadStream.end(buffer);
+  });
+};
 
 const uploadMyDocument = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    // ✅ DEBUG (keep for now)
     console.log("UPLOAD req.file:", req.file);
 
-    if (!req.file?.path) {
-      return res.status(400).json({ message: "No document uploaded (req.file.path missing)" });
+    if (!req.file?.buffer) {
+      return res.status(400).json({
+        message: "No document uploaded",
+      });
     }
 
     const { title = "", category = "other" } = req.body;
 
     const patient = await Patient.findOne({
       userId,
-      $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }],
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } },
+      ],
     });
 
-    // ✅ take actual Cloudinary values if present (multer-storage-cloudinary usually provides them)
-    const publicId = req.file.filename || req.file.public_id || "";
-    const fileUrl = req.file.path || req.file.secure_url || "";
-    const resourceType = req.file.resource_type || "auto";
-    const format = req.file.format || "";
-    const version = req.file.version || 0;
+    // Upload to Cloudinary ONLY after validation middleware
+    const cloudinaryResult = await uploadBufferToCloudinary(
+      req.file.buffer
+    );
 
-    if (!publicId || !fileUrl) {
+    if (!cloudinaryResult?.public_id || !cloudinaryResult?.secure_url) {
       return res.status(500).json({
-        message: "Cloudinary upload did not return publicId/fileUrl. Check multer-storage-cloudinary.",
+        message: "Cloudinary upload failed",
       });
     }
 
@@ -44,30 +68,38 @@ const uploadMyDocument = async (req, res) => {
       category,
 
       fileName: req.file.originalname || "",
-      fileUrl,
-      publicId,
+      fileUrl: cloudinaryResult.secure_url,
+      publicId: cloudinaryResult.public_id,
+
       mimeType: req.file.mimetype || "",
       fileSize: req.file.size || 0,
 
-      resourceType,
-      format,
-      version,
+      resourceType: cloudinaryResult.resource_type || "auto",
+      format: cloudinaryResult.format || "",
+      version: cloudinaryResult.version || 0,
     });
 
     return res.status(201).json({
       message: "Document uploaded",
-      document: { ...doc.toObject(), viewUrl: buildViewUrl(doc) },
+      document: {
+        ...doc.toObject(),
+        viewUrl: buildViewUrl(doc),
+      },
     });
   } catch (e) {
     console.error("UPLOAD DOC ERROR:", e);
-    return res.status(500).json({ message: e.message || "Server error" });
+
+    return res.status(500).json({
+      message: e.message || "Server error",
+    });
   }
 };
+
 
 const listMyDocuments = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { category , q } = req.query;
+    const { category, q } = req.query;
 
     const filter = { userId, isDeleted: false };
 
@@ -128,8 +160,8 @@ const deleteMyDocumentPermanent = async (req, res) => {
 
     const rtype =
       doc.resourceType === "image" ? "image" :
-      doc.resourceType === "video" ? "video" :
-      "raw";
+        doc.resourceType === "video" ? "video" :
+          "raw";
 
     const result = await cloudinary.uploader.destroy(doc.publicId, { resource_type: rtype });
     console.log("Cloudinary destroy result:", result);

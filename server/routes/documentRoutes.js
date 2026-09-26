@@ -1,6 +1,6 @@
 const express = require("express");
 const { authMiddleware, roleMiddleware } = require("../middleware/auth");
-const { documentUpload } = require("../middleware/documentUpload");
+const { documentUpload, validateDocumentContent } = require("../middleware/documentUpload");
 const {
   uploadMyDocument,
   listMyDocuments,
@@ -15,6 +15,7 @@ router.post(
   authMiddleware,
   roleMiddleware(["patient"]),
   documentUpload.single("document"),
+  validateDocumentContent,
   uploadMyDocument
 );
 
