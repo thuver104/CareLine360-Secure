@@ -478,8 +478,16 @@ const getHospitalDetailsForPatient = async (req, res, next) => {
 const createEmergency = async (req, res, next) => {
   try {
     const emergencyService = require("../services/emergencyService");
+
+    // Allowlist: a patient may only supply description/latitude/longitude.
+    // status, responderName, resolvedAt, responseTime, triggeredAt, and
+    // patient are all server-controlled and must never come from req.body.
+    const { description, latitude, longitude } = req.body;
+
     const emergency = await emergencyService.createEmergency({
-      ...req.body,
+      description,
+      latitude,
+      longitude,
       patient: req.user.userId, // 👈 take patient from token
     });
 
