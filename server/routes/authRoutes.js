@@ -27,16 +27,21 @@ router.post(
   "/register",
   authLimiter,
   [
-    body("role").isIn(["patient", "doctor"]).withMessage("Role must be patient or doctor"),
+    body("role")
+      .isIn(["patient", "doctor"])
+      .withMessage("Role must be patient or doctor"),
     body("fullName").notEmpty().withMessage("fullName required"),
     body("identifier").notEmpty().withMessage("Email or phone is required"),
     body("password")
       .isLength({ min: 8 })
-      .matches(/[A-Z]/).withMessage("Must include uppercase")
-      .matches(/[0-9]/).withMessage("Must include number")
-      .matches(/[^A-Za-z0-9]/).withMessage("Must include special character"),
+      .matches(/[A-Z]/)
+      .withMessage("Must include uppercase")
+      .matches(/[0-9]/)
+      .withMessage("Must include number")
+      .matches(/[^A-Za-z0-9]/)
+      .withMessage("Must include special character"),
   ],
-  register
+  register,
 );
 
 router.post(
@@ -46,31 +51,47 @@ router.post(
     body("identifier").notEmpty().withMessage("Email or phone is required"),
     body("password").notEmpty().withMessage("Password is required"),
   ],
-  login
+  login,
 );
 
-router.post("/refresh", authLimiter, [body("refreshToken").notEmpty()], refresh);
+router.post(
+  "/refresh",
+  authLimiter,
+  [body("refreshToken").notEmpty()],
+  refresh,
+);
 router.post("/logout", authMiddleware, logout);
 
 router.get("/me", authMiddleware, async (req, res) => {
   try {
     const User = require("../models/User");
+
     const user = await User.findById(req.user.userId).select(
-      "email phone role status isVerified"
+      "fullName email phone role status isVerified isActive",
     );
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    return res.json({
       user: {
         id: user._id,
+        fullName: user.fullName || null,
         email: user.email || null,
         phone: user.phone || null,
         role: user.role,
         status: user.status,
         isVerified: user.isVerified,
+        isActive: user.isActive,
       },
     });
-  } catch (e) {
-    res.status(500).json({ message: "Server error" });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Server error",
+    });
   }
 });
 
@@ -78,7 +99,7 @@ router.post(
   "/email/send-verify-otp",
   authLimiter,
   [body("identifier").notEmpty().withMessage("Email or phone is required")],
-  sendVerifyEmailOtp
+  sendVerifyEmailOtp,
 );
 
 router.post(
@@ -86,16 +107,18 @@ router.post(
   authLimiter,
   [
     body("identifier").notEmpty(),
-    body("otp").isLength({ min: 6, max: 6 }).withMessage("OTP must be 6 digits"),
+    body("otp")
+      .isLength({ min: 6, max: 6 })
+      .withMessage("OTP must be 6 digits"),
   ],
-  confirmVerifyEmailOtp
+  confirmVerifyEmailOtp,
 );
 
 router.post(
   "/password/forgot",
   authLimiter,
   [body("identifier").notEmpty().withMessage("Email or phone is required")],
-  forgotPassword
+  forgotPassword,
 );
 
 router.post(
@@ -110,13 +133,9 @@ router.post(
       .matches(/[0-9]/)
       .matches(/[^A-Za-z0-9]/),
   ],
-  resetPassword
+  resetPassword,
 );
 
-router.post(
-  "/reactivate",
-  reactivateAccount
-);
-
+router.post("/reactivate", reactivateAccount);
 
 module.exports = router;
