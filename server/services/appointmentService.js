@@ -70,6 +70,21 @@ const getAppointments = async (filters = {}) => {
     page = 1, limit = 10, sort = "-createdAt",
   } = filters;
 
+  const parsedPage = Number(page);
+  const parsedLimit = Number(limit);
+
+  if (!Number.isInteger(parsedPage) || parsedPage < 1) {
+    const error = new Error("Page must be a positive integer");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+    const error = new Error("Limit must be between 1 and 100");
+    error.statusCode = 400;
+    throw error;
+  }
+
   const query = {};
 
   if (status) {
@@ -269,6 +284,8 @@ const cancelAppointment = async (id, reason) => {
 
   return appointment;
 };
+
+
 
 module.exports = {
   createAppointment,

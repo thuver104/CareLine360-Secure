@@ -1,5 +1,5 @@
 const { validationResult } = require("express-validator");
-const { registerUser, loginUser, refreshAccessToken, logoutUser , sendEmailVerificationOtp, verifyEmailOtp, sendPasswordResetOtp, resetPasswordWithOtp } = require("../services/authService");
+const { registerUser, loginUser, refreshAccessToken, logoutUser, sendEmailVerificationOtp, verifyEmailOtp, sendPasswordResetOtp, resetPasswordWithOtp } = require("../services/authService");
 
 const register = async (req, res) => {
   const errors = validationResult(req);
@@ -48,11 +48,13 @@ const resetPassword = async (req, res) => {
 };
 
 
-module.exports = { register, 
-            login, 
-            refresh, 
-            logout, 
-            sendVerifyEmailOtp, 
-            confirmVerifyEmailOtp, 
-            forgotPassword, 
-            resetPassword };
+module.exports = {
+  register,
+  login,
+  refresh,
+  logout,
+  sendVerifyEmailOtp,
+  confirmVerifyEmailOtp,
+  forgotPassword,
+  resetPassword
+};

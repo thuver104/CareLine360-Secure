@@ -7,6 +7,10 @@ const Hospital = require("../models/Hospital");
 const bcrypt = require("bcryptjs");
 const EmergencyCase = require("../models/EmergencyCase");
 
+const escapeRegex = (value) => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 const { calcPatientProfileStrength } = require("../services/profileStrength");
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -24,7 +28,7 @@ const getMyProfile = async (req, res, next) => {
     const user = await User.findById(userId).select("email isVerified role");
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-    // ✅ Document count (for now no doc module => 0)
+    // Document count (for now no doc module => 0)
     const docsCount = 0;
 
     const profileStrength = calcPatientProfileStrength({ patient, docsCount });
@@ -393,10 +397,28 @@ const getAllDoctorsForPatient = async (req, res, next) => {
 
     const filter = { isDeleted: { $ne: true } };
 
-    if (q) {
+    if (typeof q !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Search query must be text",
+      });
+    }
+
+    const searchQuery = q.trim();
+
+    if (searchQuery.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query is too long",
+      });
+    }
+
+    if (searchQuery) {
+      const safeQuery = escapeRegex(searchQuery);
+
       filter.$or = [
-        { fullName: { $regex: q, $options: "i" } },
-        { specialization: { $regex: q, $options: "i" } },
+        { fullName: { $regex: safeQuery, $options: "i" } },
+        { specialization: { $regex: safeQuery, $options: "i" } },
       ];
     }
 

@@ -1,4 +1,4 @@
-const { body, param } = require("express-validator");
+const { body, param, query } = require("express-validator");
 
 const createAppointmentRules = [
   // patient is set server-side from JWT (req.user.userId)
@@ -120,10 +120,37 @@ const cancelRules = [
     .isLength({ max: 500 }).withMessage("Cancellation reason must be under 500 characters"),
 ];
 
+const getAppointmentsRules = [
+  query("status")
+    .optional()
+    .custom((value) => {
+      const allowedStatuses = [
+        "pending",
+        "confirmed",
+        "completed",
+        "cancelled",
+      ];
+
+      const statuses = value.split(",").map((status) => status.trim());
+
+      const invalidStatuses = statuses.filter(
+        (status) => !allowedStatuses.includes(status)
+      );
+
+      if (invalidStatuses.length > 0) {
+        throw new Error("Invalid appointment status");
+      }
+
+      return true;
+    }),
+];
+
+
 module.exports = {
   createAppointmentRules,
   updateAppointmentRules,
   statusTransitionRules,
   rescheduleRules,
   cancelRules,
+  getAppointmentsRules
 };

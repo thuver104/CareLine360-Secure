@@ -8,6 +8,7 @@ const {
   statusTransitionRules,
   rescheduleRules,
   cancelRules,
+  getAppointmentsRules,
 } = require("../validators/appointmentValidator");
 const {
   createAppointment,
@@ -28,7 +29,7 @@ router.use(authMiddleware);
 
 router.post("/", roleMiddleware(["patient", "user"]), createAppointmentRules, validateRequest, createAppointment);
 router.get("/stats", getAppointmentStats); // Must be before /:id
-router.get("/", getAppointments);
+router.get("/", getAppointmentsRules, validateRequest, getAppointments);
 router.get("/:id", getAppointmentById);
 router.put("/:id", updateAppointmentRules, validateRequest, updateAppointment);
 router.delete("/:id", deleteAppointment);

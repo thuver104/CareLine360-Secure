@@ -8,6 +8,11 @@ const { sendEmail } = require("./emailService");
 const { sendSMS } = require("./smsService");
 const Appointment = require("../models/Appointment");
 
+
+const escapeRegex = (value) => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 /**
  * Notify a user via email if available, otherwise via SMS.
  * Returns { method: 'email'|'sms'|'none', success: boolean }
@@ -102,13 +107,31 @@ const getAllUsers = async (page = 1, limit = 10, search = "", role = "all") => {
     },
   ];
 
-  if (search) {
+  if (typeof search !== "string") {
+    return {
+      status: 400,
+      data: { message: "Search query must be text" },
+    };
+  }
+
+  const searchQuery = search.trim();
+
+  if (searchQuery.length > 100) {
+    return {
+      status: 400,
+      data: { message: "Search query is too long" },
+    };
+  }
+
+  if (searchQuery) {
+    const safeSearch = escapeRegex(searchQuery);
+
     pipeline.push({
       $match: {
         $or: [
-          { displayName: { $regex: search, $options: "i" } },
-          { email: { $regex: search, $options: "i" } },
-          { phone: { $regex: search, $options: "i" } },
+          { displayName: { $regex: safeSearch, $options: "i" } },
+          { email: { $regex: safeSearch, $options: "i" } },
+          { phone: { $regex: safeSearch, $options: "i" } },
         ],
       },
     });
@@ -728,8 +751,8 @@ const generateReport = async ({ category, fromDate, toDate }) => {
 
       const avgResponse = responseTimes.length
         ? Math.round(
-            responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length,
-          )
+          responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length,
+        )
         : 0;
 
       const resolved = byStatus.RESOLVED;
