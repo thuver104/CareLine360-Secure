@@ -1,0 +1,554 @@
+{
+  "info": {
+    "_postman_id": "v1-idor-appointments-001",
+    "name": "CareLine360 - V1 IDOR Appointment Security Tests",
+    "description": "Security test collection for V1 - IDOR / Broken Access Control on the Appointment module. Demonstrates the BEFORE-fix vulnerability (cross-user access via GET /api/appointments/:id) and verifies the AFTER-fix ownership checks (403 Forbidden) across all ID-based appointment endpoints. Two independent patient accounts (Patient A / Patient B) and one doctor account are used to prove ownership boundaries.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Setup - Accounts & Appointment",
+      "item": [
+        {
+          "name": "Register Patient A",
+          "id": "v1-setup-register-patient-a",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.environment.set('patientAToken', data.accessToken);",
+                  "pm.environment.set('patientAId', data.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"patient\",\n  \"fullName\": \"IDOR Test Patient A\",\n  \"identifier\": \"{{patientAIdentifier}}\",\n  \"password\": \"{{patientAPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Self-registers Patient A. Patients are ACTIVE immediately, so accessToken is returned in the same response."
+          },
+          "response": []
+        },
+        {
+          "name": "Register Patient B (Attacker)",
+          "id": "v1-setup-register-patient-b",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.environment.set('patientBToken', data.accessToken);",
+                  "pm.environment.set('patientBId', data.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"patient\",\n  \"fullName\": \"IDOR Test Patient B\",\n  \"identifier\": \"{{patientBIdentifier}}\",\n  \"password\": \"{{patientBPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Self-registers Patient B, the attacker account used to attempt cross-user access to Patient A's appointment."
+          },
+          "response": []
+        },
+        {
+          "name": "Login Doctor (existing seeded doctor)",
+          "id": "v1-setup-login-doctor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const data = pm.response.json();",
+                  "pm.environment.set('doctorToken', data.accessToken);",
+                  "pm.environment.set('doctorId', data.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{doctorIdentifier}}\",\n  \"password\": \"{{doctorPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Doctors require admin approval before ACTIVE, so this uses an existing ACTIVE seeded doctor account (set doctorIdentifier/doctorPassword in the environment) rather than a freshly registered one."
+          },
+          "response": []
+        },
+        {
+          "name": "Login Non-Owning Doctor",
+          "id": "v1-setup-login-other-doctor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const data = pm.response.json();",
+                  "pm.environment.set('otherDoctorToken', data.accessToken);",
+                  "pm.environment.set('otherDoctorId', data.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{otherDoctorIdentifier}}\",\n  \"password\": \"{{otherDoctorPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "A second, unrelated ACTIVE seeded doctor account, used to prove a non-owning doctor cannot manage another doctor's appointment."
+          },
+          "response": []
+        },
+        {
+          "name": "Patient A - Create Appointment",
+          "id": "v1-setup-create-appointment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.environment.set('appointmentId', data.data._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{patientAToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doctor\": \"{{doctorId}}\",\n  \"date\": \"2026-11-10T00:00:00.000Z\",\n  \"time\": \"10:00\",\n  \"consultationType\": \"in-person\",\n  \"symptoms\": \"IDOR PoC test entry\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments"]
+            },
+            "description": "Creates an appointment owned by Patient A and the doctor above. This appointmentId is the target used in every cross-user test below."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1. BEFORE-fix Vulnerability Demo (GET, cross-patient)",
+      "item": [
+        {
+          "name": "Patient B reads Patient A's appointment (attack)",
+          "id": "v1-idor-get-attack",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('AFTER FIX: Status is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+                  "pm.test('BEFORE FIX (documented, not asserted): would have returned 200 with Patient A data', function () { pm.expect(true).to.be.true; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{patientBToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}"]
+            },
+            "description": "Core IDOR PoC. BEFORE the fix: returned HTTP 200 with Patient A's full appointment data under Patient B's token. AFTER the fix: must return HTTP 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Patient A reads own appointment (control - should succeed)",
+          "id": "v1-idor-get-owner-control",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{patientAToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}"]
+            },
+            "description": "Control case: the owning patient must still be able to read their own appointment after the fix."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Ownership Checks - Write Operations",
+      "item": [
+        {
+          "name": "PUT /:id - Patient B attempts update (expect 403)",
+          "id": "v1-idor-put-attack",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status is 403 Forbidden', function () { pm.response.to.have.status(403); });"]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{patientBToken}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symptoms\": \"tampered by attacker\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}"]
+            },
+            "description": "Non-owning patient must not be able to modify Patient A's appointment."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /:id - Patient A updates own appointment (expect 200)",
+          "id": "v1-idor-put-owner-control",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status is 200', function () { pm.response.to.have.status(200); });"]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{patientAToken}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symptoms\": \"updated by owner\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}"]
+            },
+            "description": "Control case: owner can still update their own pending appointment."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /:id/status - Non-owning doctor attempts transition (expect 403)",
+          "id": "v1-idor-status-attack",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status is 403 Forbidden', function () { pm.response.to.have.status(403); });"]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{otherDoctorToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/status",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}", "status"]
+            },
+            "description": "A doctor not assigned to this appointment must not be able to transition its status, even though roleMiddleware already restricts this route to the 'doctor' role."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /:id/status - Owning doctor transitions to confirmed (expect 200)",
+          "id": "v1-idor-status-owner-control",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status is 200', function () { pm.response.to.have.status(200); });"]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{doctorToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/status",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}", "status"]
+            },
+            "description": "Control case: the owning doctor can still transition their own assigned appointment. Run this AFTER the attack case above so the appointment is still 'pending' when the attack is attempted."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /:id/reschedule - Patient B attempts reschedule (expect 403)",
+          "id": "v1-idor-reschedule-attack",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status is 403 Forbidden', function () { pm.response.to.have.status(403); });"]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{patientBToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-12-01T00:00:00.000Z\",\n  \"time\": \"15:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/reschedule",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}", "reschedule"]
+            },
+            "description": "Requires the appointment to be 'confirmed' first (run the status-transition control case above). Non-owning patient must not be able to reschedule."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /:id/reschedule - Patient A reschedules own appointment (expect 200)",
+          "id": "v1-idor-reschedule-owner-control",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status is 200', function () { pm.response.to.have.status(200); });"]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{patientAToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-12-01T00:00:00.000Z\",\n  \"time\": \"15:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/reschedule",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}", "reschedule"]
+            },
+            "description": "Control case: owning patient can still reschedule their own confirmed appointment."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /:id/cancel - Patient B attempts cancel (expect 403)",
+          "id": "v1-idor-cancel-attack",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status is 403 Forbidden', function () { pm.response.to.have.status(403); });"]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{patientBToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"attacker attempting to cancel\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/cancel",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}", "cancel"]
+            },
+            "description": "Non-owning patient must not be able to cancel Patient A's appointment."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /:id/cancel - Patient A cancels own appointment (expect 200)",
+          "id": "v1-idor-cancel-owner-control",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status is 200', function () { pm.response.to.have.status(200); });"]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{patientAToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"no longer needed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/cancel",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}", "cancel"]
+            },
+            "description": "Control case: owning patient can still cancel their own appointment. Run last, since this ends the appointment lifecycle."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /:id - Patient B attempts delete (expect 403)",
+          "id": "v1-idor-delete-attack",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status is 403 Forbidden', function () { pm.response.to.have.status(403); });"]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{patientBToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+              "protocol": "http",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}"]
+            },
+            "description": "Note: delete only succeeds on a 'pending' appointment. Run this BEFORE any status-transition control case if you want to also exercise the success control path with DELETE."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

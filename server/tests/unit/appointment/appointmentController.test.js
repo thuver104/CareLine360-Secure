@@ -84,8 +84,8 @@ describe("Appointment Controller", () => {
   // ─── getAppointmentById ───────────────────────────────────────────
 
   describe("getAppointmentById", () => {
-    it("should return appointment by ID", async () => {
-      const req = { params: { id: "appt1" } };
+    it("should return appointment by ID and pass req.user for ownership check", async () => {
+      const req = { params: { id: "appt1" }, user: { userId: "user123", role: "patient" } };
       const res = mockRes();
       const next = jest.fn();
 
@@ -94,14 +94,29 @@ describe("Appointment Controller", () => {
 
       await controller.getAppointmentById(req, res, next);
 
+      expect(appointmentService.getAppointmentById).toHaveBeenCalledWith("appt1", req.user);
       expect(res.json).toHaveBeenCalledWith({ success: true, data: mockAppt });
     });
 
     it("should forward errors via next", async () => {
-      const req = { params: { id: "bad" } };
+      const req = { params: { id: "bad" }, user: { userId: "user123", role: "patient" } };
       const res = mockRes();
       const next = jest.fn();
       const error = new Error("not found");
+
+      appointmentService.getAppointmentById.mockRejectedValue(error);
+
+      await controller.getAppointmentById(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(error);
+    });
+
+    it("should forward a 403 error from the service when access is denied", async () => {
+      const req = { params: { id: "appt1" }, user: { userId: "attacker", role: "patient" } };
+      const res = mockRes();
+      const next = jest.fn();
+      const error = new Error("Forbidden: you do not have access to this appointment");
+      error.statusCode = 403;
 
       appointmentService.getAppointmentById.mockRejectedValue(error);
 
@@ -114,8 +129,12 @@ describe("Appointment Controller", () => {
   // ─── updateAppointment ────────────────────────────────────────────
 
   describe("updateAppointment", () => {
-    it("should update and return the appointment", async () => {
-      const req = { params: { id: "appt1" }, body: { symptoms: "updated" } };
+    it("should update and return the appointment, passing req.user for ownership check", async () => {
+      const req = {
+        params: { id: "appt1" },
+        body: { symptoms: "updated" },
+        user: { userId: "user123", role: "patient" },
+      };
       const res = mockRes();
       const next = jest.fn();
 
@@ -124,15 +143,33 @@ describe("Appointment Controller", () => {
 
       await controller.updateAppointment(req, res, next);
 
-      expect(appointmentService.updateAppointment).toHaveBeenCalledWith("appt1", { symptoms: "updated" });
+      expect(appointmentService.updateAppointment).toHaveBeenCalledWith("appt1", { symptoms: "updated" }, req.user);
       expect(res.json).toHaveBeenCalledWith({ success: true, data: mockAppt });
     });
 
     it("should forward errors via next", async () => {
-      const req = { params: { id: "appt1" }, body: {} };
+      const req = { params: { id: "appt1" }, body: {}, user: { userId: "user123", role: "patient" } };
       const res = mockRes();
       const next = jest.fn();
       const error = new Error("fail");
+
+      appointmentService.updateAppointment.mockRejectedValue(error);
+
+      await controller.updateAppointment(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(error);
+    });
+
+    it("should forward a 403 error from the service when a non-owner attempts to update", async () => {
+      const req = {
+        params: { id: "appt1" },
+        body: { symptoms: "hacked" },
+        user: { userId: "attacker", role: "patient" },
+      };
+      const res = mockRes();
+      const next = jest.fn();
+      const error = new Error("Forbidden: you do not have access to this appointment");
+      error.statusCode = 403;
 
       appointmentService.updateAppointment.mockRejectedValue(error);
 
@@ -145,8 +182,8 @@ describe("Appointment Controller", () => {
   // ─── deleteAppointment ────────────────────────────────────────────
 
   describe("deleteAppointment", () => {
-    it("should delete and return success message", async () => {
-      const req = { params: { id: "appt1" } };
+    it("should delete and return success message, passing req.user for ownership check", async () => {
+      const req = { params: { id: "appt1" }, user: { userId: "user123", role: "patient" } };
       const res = mockRes();
       const next = jest.fn();
 
@@ -154,14 +191,29 @@ describe("Appointment Controller", () => {
 
       await controller.deleteAppointment(req, res, next);
 
+      expect(appointmentService.deleteAppointment).toHaveBeenCalledWith("appt1", req.user);
       expect(res.json).toHaveBeenCalledWith({ success: true, message: "Appointment deleted" });
     });
 
     it("should forward errors via next", async () => {
-      const req = { params: { id: "appt1" } };
+      const req = { params: { id: "appt1" }, user: { userId: "user123", role: "patient" } };
       const res = mockRes();
       const next = jest.fn();
       const error = new Error("fail");
+
+      appointmentService.deleteAppointment.mockRejectedValue(error);
+
+      await controller.deleteAppointment(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(error);
+    });
+
+    it("should forward a 403 error from the service when a non-owner attempts to delete", async () => {
+      const req = { params: { id: "appt1" }, user: { userId: "attacker", role: "patient" } };
+      const res = mockRes();
+      const next = jest.fn();
+      const error = new Error("Forbidden: you do not have access to this appointment");
+      error.statusCode = 403;
 
       appointmentService.deleteAppointment.mockRejectedValue(error);
 
@@ -174,8 +226,12 @@ describe("Appointment Controller", () => {
   // ─── transitionStatus ─────────────────────────────────────────────
 
   describe("transitionStatus", () => {
-    it("should transition status and return result", async () => {
-      const req = { params: { id: "appt1" }, body: { status: "confirmed" } };
+    it("should transition status and return result, passing req.user for ownership check", async () => {
+      const req = {
+        params: { id: "appt1" },
+        body: { status: "confirmed" },
+        user: { userId: "doc123", role: "doctor" },
+      };
       const res = mockRes();
       const next = jest.fn();
 
@@ -184,15 +240,33 @@ describe("Appointment Controller", () => {
 
       await controller.transitionStatus(req, res, next);
 
-      expect(appointmentService.transitionStatus).toHaveBeenCalledWith("appt1", "confirmed");
+      expect(appointmentService.transitionStatus).toHaveBeenCalledWith("appt1", "confirmed", req.user);
       expect(res.json).toHaveBeenCalledWith({ success: true, data: mockAppt });
     });
 
     it("should forward errors via next", async () => {
-      const req = { params: { id: "appt1" }, body: { status: "bad" } };
+      const req = { params: { id: "appt1" }, body: { status: "bad" }, user: { userId: "doc123", role: "doctor" } };
       const res = mockRes();
       const next = jest.fn();
       const error = new Error("fail");
+
+      appointmentService.transitionStatus.mockRejectedValue(error);
+
+      await controller.transitionStatus(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(error);
+    });
+
+    it("should forward a 403 error from the service when a non-owning doctor attempts to transition status", async () => {
+      const req = {
+        params: { id: "appt1" },
+        body: { status: "confirmed" },
+        user: { userId: "other-doctor", role: "doctor" },
+      };
+      const res = mockRes();
+      const next = jest.fn();
+      const error = new Error("Forbidden: you do not have access to this appointment");
+      error.statusCode = 403;
 
       appointmentService.transitionStatus.mockRejectedValue(error);
 
@@ -205,8 +279,12 @@ describe("Appointment Controller", () => {
   // ─── rescheduleAppointment ────────────────────────────────────────
 
   describe("rescheduleAppointment", () => {
-    it("should reschedule and return result", async () => {
-      const req = { params: { id: "appt1" }, body: { date: "2026-05-01", time: "14:00" } };
+    it("should reschedule and return result, passing req.user for ownership check", async () => {
+      const req = {
+        params: { id: "appt1" },
+        body: { date: "2026-05-01", time: "14:00" },
+        user: { userId: "user123", role: "patient" },
+      };
       const res = mockRes();
       const next = jest.fn();
 
@@ -215,15 +293,38 @@ describe("Appointment Controller", () => {
 
       await controller.rescheduleAppointment(req, res, next);
 
-      expect(appointmentService.rescheduleAppointment).toHaveBeenCalledWith("appt1", "2026-05-01", "14:00");
+      expect(appointmentService.rescheduleAppointment).toHaveBeenCalledWith(
+        "appt1",
+        "2026-05-01",
+        "14:00",
+        req.user
+      );
       expect(res.json).toHaveBeenCalledWith({ success: true, data: mockAppt });
     });
 
     it("should forward errors via next", async () => {
-      const req = { params: { id: "appt1" }, body: {} };
+      const req = { params: { id: "appt1" }, body: {}, user: { userId: "user123", role: "patient" } };
       const res = mockRes();
       const next = jest.fn();
       const error = new Error("fail");
+
+      appointmentService.rescheduleAppointment.mockRejectedValue(error);
+
+      await controller.rescheduleAppointment(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(error);
+    });
+
+    it("should forward a 403 error from the service when a non-owner attempts to reschedule", async () => {
+      const req = {
+        params: { id: "appt1" },
+        body: { date: "2026-05-01", time: "14:00" },
+        user: { userId: "attacker", role: "patient" },
+      };
+      const res = mockRes();
+      const next = jest.fn();
+      const error = new Error("Forbidden: you do not have access to this appointment");
+      error.statusCode = 403;
 
       appointmentService.rescheduleAppointment.mockRejectedValue(error);
 
@@ -236,8 +337,12 @@ describe("Appointment Controller", () => {
   // ─── cancelAppointment ────────────────────────────────────────────
 
   describe("cancelAppointment", () => {
-    it("should cancel and return result", async () => {
-      const req = { params: { id: "appt1" }, body: { reason: "conflict" } };
+    it("should cancel and return result, passing req.user for ownership check", async () => {
+      const req = {
+        params: { id: "appt1" },
+        body: { reason: "conflict" },
+        user: { userId: "user123", role: "patient" },
+      };
       const res = mockRes();
       const next = jest.fn();
 
@@ -246,15 +351,33 @@ describe("Appointment Controller", () => {
 
       await controller.cancelAppointment(req, res, next);
 
-      expect(appointmentService.cancelAppointment).toHaveBeenCalledWith("appt1", "conflict");
+      expect(appointmentService.cancelAppointment).toHaveBeenCalledWith("appt1", "conflict", req.user);
       expect(res.json).toHaveBeenCalledWith({ success: true, data: mockAppt });
     });
 
     it("should forward errors via next", async () => {
-      const req = { params: { id: "appt1" }, body: {} };
+      const req = { params: { id: "appt1" }, body: {}, user: { userId: "user123", role: "patient" } };
       const res = mockRes();
       const next = jest.fn();
       const error = new Error("fail");
+
+      appointmentService.cancelAppointment.mockRejectedValue(error);
+
+      await controller.cancelAppointment(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(error);
+    });
+
+    it("should forward a 403 error from the service when a non-owner attempts to cancel", async () => {
+      const req = {
+        params: { id: "appt1" },
+        body: { reason: "conflict" },
+        user: { userId: "attacker", role: "patient" },
+      };
+      const res = mockRes();
+      const next = jest.fn();
+      const error = new Error("Forbidden: you do not have access to this appointment");
+      error.statusCode = 403;
 
       appointmentService.cancelAppointment.mockRejectedValue(error);
 
