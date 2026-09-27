@@ -175,3 +175,91 @@ describe("Member 2 - V3 Missing Authentication", () => {
     expect(response.body.data).not.toHaveProperty("phone");
   });
 });
+
+describe("Member 2 - V3 least-privilege user directory", () => {
+  let otherPatient;
+  let adminToken;
+
+  beforeAll(async () => {
+    otherPatient = await User.create({
+      fullName: "V3 Other Patient",
+      email: "v3other-security@example.com",
+      role: "patient",
+      passwordHash: "dummy-password-hash",
+      isVerified: true,
+      isActive: true,
+      status: "ACTIVE",
+    });
+
+    const adminUser = await User.create({
+      fullName: "V3 Test Admin",
+      email: "v3admin-security@example.com",
+      role: "admin",
+      passwordHash: "dummy-password-hash",
+      isVerified: true,
+      isActive: true,
+      status: "ACTIVE",
+    });
+
+    adminToken = createToken(adminUser);
+  });
+
+  test("non-admin directory returns doctors only", async () => {
+    const response = await request(app)
+      .get("/api/users")
+      .set("Authorization", `Bearer ${patientToken}`)
+      .expect(200);
+
+    expect(response.body.data.length).toBeGreaterThan(0);
+    response.body.data.forEach((u) => expect(u.role).toBe("doctor"));
+  });
+
+  test("patient cannot list patients or admins", async () => {
+    await request(app)
+      .get("/api/users?role=patient")
+      .set("Authorization", `Bearer ${patientToken}`)
+      .expect(403);
+
+    await request(app)
+      .get("/api/users?role=admin")
+      .set("Authorization", `Bearer ${patientToken}`)
+      .expect(403);
+  });
+
+  test("patient cannot view another patient's profile", async () => {
+    await request(app)
+      .get(`/api/users/${otherPatient._id}`)
+      .set("Authorization", `Bearer ${patientToken}`)
+      .expect(404);
+  });
+
+  test("patient can view own profile", async () => {
+    await request(app)
+      .get(`/api/users/${patientUser._id}`)
+      .set("Authorization", `Bearer ${patientToken}`)
+      .expect(200);
+  });
+
+  test("rejects invalid id and array role filter", async () => {
+    await request(app)
+      .get("/api/users/not-an-id")
+      .set("Authorization", `Bearer ${patientToken}`)
+      .expect(400);
+
+    await request(app)
+      .get("/api/users?role=doctor&role=patient")
+      .set("Authorization", `Bearer ${patientToken}`)
+      .expect(400);
+  });
+
+  test("admin can still list users by role", async () => {
+    const response = await request(app)
+      .get("/api/users?role=patient")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(200);
+
+    expect(
+      response.body.data.some((u) => u.fullName === "V3 Other Patient"),
+    ).toBe(true);
+  });
+});
