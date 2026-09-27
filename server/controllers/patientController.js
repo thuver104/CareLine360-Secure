@@ -459,11 +459,29 @@ const getAllHospitalsForPatient = async (req, res, next) => {
 
     const filter = { isActive: true };
 
-    if (q) {
+    if (typeof q !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Search query must be a string",
+      });
+    }
+
+    const searchQuery = q.trim();
+
+    if (searchQuery.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query is too long",
+      });
+    }
+
+    if (searchQuery) {
+      const safeQuery = escapeRegex(searchQuery);
+
       filter.$or = [
-        { name: { $regex: q, $options: "i" } },
-        { address: { $regex: q, $options: "i" } },
-        { contact: { $regex: q, $options: "i" } },
+        { name: { $regex: safeQuery, $options: "i" } },
+        { address: { $regex: safeQuery, $options: "i" } },
+        { contact: { $regex: safeQuery, $options: "i" } },
       ];
     }
 

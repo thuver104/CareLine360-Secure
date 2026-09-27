@@ -8,12 +8,12 @@ const {
   mongoIdParam,
 } = require("../validators/patientValidator");
 
-const { 
-  getMyProfile , 
-  updateMyProfile , 
-  uploadAvatar, 
+const {
+  getMyProfile,
+  updateMyProfile,
+  uploadAvatar,
   removeAvatar,
-  deactivateMyAccount ,
+  deactivateMyAccount,
   explainMedicalText,
 
   getMyMedicalRecords,
@@ -26,6 +26,7 @@ const {
   createEmergency,
 } = require("../controllers/patientController");
 const { imageUpload } = require("../middleware/upload");
+const { validateEmergency } = require("../validators/emergencyValidator");
 
 const router = express.Router();
 
@@ -37,8 +38,8 @@ router.get(
 );
 
 router.patch(
-  "/me", 
-  authMiddleware, 
+  "/me",
+  authMiddleware,
   roleMiddleware(["patient"]),
   updateProfileRules,
   validateRequest,
@@ -68,8 +69,8 @@ router.patch(
 );
 
 router.post(
-  "/me/ai-explain", 
-  authMiddleware, 
+  "/me/ai-explain",
+  authMiddleware,
   roleMiddleware(["patient"]),
   explainMedicalTextRules,
   validateRequest,
@@ -78,39 +79,39 @@ router.post(
 
 // ✅ Patient view own medical records
 router.get(
-  "/me/medical-record", 
-  authMiddleware, 
-  roleMiddleware(["patient"]), 
+  "/me/medical-record",
+  authMiddleware,
+  roleMiddleware(["patient"]),
   getMyMedicalRecords
 );
 
 // ✅ Patient view own prescriptions
 router.get(
-  "/me/prescription", 
-  authMiddleware, 
-  roleMiddleware(["patient"]), 
+  "/me/prescription",
+  authMiddleware,
+  roleMiddleware(["patient"]),
   getMyPrescriptions
 );
 
 // ✅ Patient get all doctors list
 router.get(
-  "/doctor", 
-  authMiddleware, 
-  roleMiddleware(["patient"]), 
+  "/doctor",
+  authMiddleware,
+  roleMiddleware(["patient"]),
   getAllDoctorsForPatient
 );
 
 // hospitals
 router.get(
   "/hospital",
-  authMiddleware, 
+  authMiddleware,
   roleMiddleware(["patient"]),
   getAllHospitalsForPatient
 );
 
 router.get(
   "/hospital/:id",
-  authMiddleware, 
+  authMiddleware,
   roleMiddleware(["patient"]),
   mongoIdParam("id"),
   validateRequest,
@@ -120,7 +121,7 @@ router.get(
 // doctors detail
 router.get(
   "/doctor/:id",
-  authMiddleware, 
+  authMiddleware,
   roleMiddleware(["patient"]),
   mongoIdParam("id"),
   validateRequest,
@@ -131,6 +132,7 @@ router.post(
   "/",
   authMiddleware,
   roleMiddleware(["patient"]),
+  validateEmergency,
   createEmergency
 );
 
