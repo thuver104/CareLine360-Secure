@@ -539,7 +539,10 @@ const getMyPatients = async ({ userId, search, page = 1, limit = 6 }) => {
 
   // ── Step 5: Search filter (handles users with or without profiles) ────────
   if (search) {
-    const rx = new RegExp(search, "i");
+
+    //escape the special characteristics
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const rx = new RegExp(escapedSearch, "i");
     merged = merged.filter(
       (p) =>
         rx.test(p.fullName) ||

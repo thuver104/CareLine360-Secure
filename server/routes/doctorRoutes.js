@@ -13,6 +13,8 @@ const {
   updateMedicalRecordRules,
   savePrescriptionRules,
   mongoIdParam,
+  getDoctorPublicByIdRule,
+  getDoctorAppointmentsRule,
 } = require("../validators/doctorValidator");
 
 const {
@@ -54,7 +56,7 @@ const router = express.Router();
 
 // ── Public ────────────────────────────────────────────────────────────────────
 router.get("/public", listDoctors);
-router.get("/public/:id", getDoctorPublicById);
+router.get("/public/:id", getDoctorPublicByIdRule, validateRequest, getDoctorPublicById);
 
 // ── Doctor-only protected ─────────────────────────────────────────────────────
 const doctorAuth = [authMiddleware, roleMiddleware(["doctor"])];
@@ -117,7 +119,13 @@ router.put(
 );
 
 // Appointments
-router.get("/appointments", doctorAuth, getAppointments);
+router.get("/appointments",
+  doctorAuth,
+  getDoctorAppointmentsRule,
+  validateRequest,
+  getAppointments);
+
+
 router.patch(
   "/appointments/:appointmentId",
   doctorAuth,

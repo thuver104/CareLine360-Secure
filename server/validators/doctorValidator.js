@@ -263,6 +263,24 @@ const savePrescriptionRules = [
     .isLength({ max: 1000 }).withMessage("Prescription notes must be under 1000 characters"),
 ];
 
+const getDoctorPublicByIdRule = [
+  param("id")
+    .isMongoId()
+    .withMessage("Invalid Mongo Id")
+];
+
+const getDoctorAppointmentsRule = [
+  query("page")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Page must be a positive integer"),
+
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage("Limit must be between 1 to 100"),
+];
+
 module.exports = {
   mongoIdParam,
   createProfileRules,
@@ -274,4 +292,6 @@ module.exports = {
   createMedicalRecordRules,
   updateMedicalRecordRules,
   savePrescriptionRules,
+  getDoctorPublicByIdRule,
+  getDoctorAppointmentsRule
 };
