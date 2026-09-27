@@ -1,0 +1,27 @@
+rules:
+  - id: socketio-room-join-without-authorization
+    languages: [javascript]
+    severity: ERROR
+    message: >-
+      Socket.IO room joined using a client-supplied ID without a server-side
+      ownership check (CWE-862 / CWE-639, OWASP A01). Verify the user is a
+      participant before calling join().
+    metadata:
+      cwe: "CWE-862: Missing Authorization"
+      owasp: "A01:2021 - Broken Access Control"
+    patterns:
+      - pattern-inside: |
+          $SOCKET.on($EVENT, ...)
+      - pattern: $SOCKET.join(...)
+      - pattern-not-inside: |
+          const $OK = await isAppointmentParticipant(...);
+          ...
+  - id: socketio-handler-destructures-payload
+    languages: [javascript]
+    severity: WARNING
+    message: >-
+      Socket.IO handler destructures the event payload directly. A missing or
+      null payload throws an uncaught TypeError and can crash the server
+      (CWE-20 / CWE-248).
+    pattern: |
+      $SOCKET.on($EVENT, ({...}) => { ... })
