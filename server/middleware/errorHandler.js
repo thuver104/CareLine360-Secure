@@ -9,18 +9,24 @@ const errorHandler = (err, req, res, next) => {
   // Mongoose validation error (model-level validators)
   if (err.name === "ValidationError") {
     const messages = Object.values(err.errors).map((e) => e.message);
-    return res.status(400).json({ success: false, message: messages.join(", ") });
+    return res
+      .status(400)
+      .json({ success: false, message: messages.join(", ") });
   }
 
   // Mongoose CastError (invalid ObjectId, etc.)
   if (err.name === "CastError") {
-    return res.status(400).json({ success: false, message: `Invalid ${err.path || "ID"} format` });
+    return res
+      .status(400)
+      .json({ success: false, message: `Invalid ${err.path || "ID"} format` });
   }
 
   // MongoDB duplicate key error
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue)[0];
-    return res.status(409).json({ success: false, message: `Duplicate value for ${field}` });
+    return res
+      .status(409)
+      .json({ success: false, message: `Duplicate value for ${field}` });
   }
 
   // JWT errors
@@ -28,7 +34,9 @@ const errorHandler = (err, req, res, next) => {
     return res.status(401).json({ success: false, message: "Invalid token" });
   }
   if (err.name === "TokenExpiredError") {
-    return res.status(401).json({ success: false, message: "Token has expired" });
+    return res
+      .status(401)
+      .json({ success: false, message: "Token has expired" });
   }
 
   // Multer file upload errors
@@ -49,16 +57,26 @@ const errorHandler = (err, req, res, next) => {
 
   // Malformed JSON body
   if (err.type === "entity.parse.failed") {
-    return res.status(400).json({ success: false, message: "Malformed JSON in request body" });
+    return res
+      .status(400)
+      .json({ success: false, message: "Malformed JSON in request body" });
   }
 
   // Payload too large
   if (err.type === "entity.too.large") {
-    return res.status(413).json({ success: false, message: "Request body is too large" });
+    return res
+      .status(413)
+      .json({ success: false, message: "Request body is too large" });
   }
 
-  const message = err.message || "Internal Server Error";
-  res.status(statusCode).json({ success: false, message });
+  // V5 FIX: never leak raw internal error text.
+  // 4xx are safe business messages; 5xx get a fixed generic message and the
+  // real error is logged server-side only (above).
+  const isClientError = statusCode >= 400 && statusCode < 500;
+  const safeMessage = isClientError
+    ? err.message || "Request could not be processed"
+    : "Internal server error";
+  res.status(statusCode).json({ success: false, message: safeMessage });
 };
 
 module.exports = errorHandler;
