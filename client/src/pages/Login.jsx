@@ -16,6 +16,7 @@ import logo from "../assets/logo.png";
 import loginImg from "../assets/images/login.png";
 
 import "./Auth.css";
+import { generateCodeChallenge, generateCodeVerifier } from "../utils/pkce";
 
 export default function Login() {
   const nav = useNavigate();
@@ -26,8 +27,39 @@ export default function Login() {
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState("");
+
   const [canReactivate, setCanReactivate] = useState(false);
   const [reactivating, setReactivating] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true);
+      setGoogleError("");
+
+      const codeVerifier = generateCodeVerifier();
+
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+      sessionStorage.setItem("pkce_code_verifier", codeVerifier);
+
+      console.log("PKCE Code Verifier:", codeVerifier);
+      console.log("PKCE Code Challenge:", codeChallenge);
+
+      // Google redirect will be connected
+      // when the backend OAuth endpoint is ready.
+
+    } catch (error) {
+      console.error("Google OAuth initialization failed:", error);
+
+      setGoogleError(
+        "Unable to start Google sign-in. Please try again."
+      );
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -247,6 +279,30 @@ export default function Login() {
             <span className="auth-divider-text">or</span>
             <span className="auth-divider-line" />
           </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg px-4 py-3 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+          >
+            <img
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              alt="Google"
+              className="w-5 h-5"
+            />
+
+            <span className="font-medium text-gray-700">
+              {googleLoading
+                ? "Preparing Google sign-in..."
+                : "Continue with Google"}
+            </span>
+          </button>
+          {googleError && (
+            <p className="mt-2 text-sm text-red-600 text-center">
+              {googleError}
+            </p>
+          )}
 
           {/* Footer */}
           <div className="auth-footer-links">

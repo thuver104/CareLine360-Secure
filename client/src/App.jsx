@@ -51,6 +51,7 @@ import AppointmentHistory from "./pages/AppointmentHistory";
 
 // Route Protection
 import ProtectedRoute from "./routes/ProtectedRoute";
+import OAuthCallback from "./pages/auth/OAuthCallback";
 
 export default function App() {
   const { isAuthenticated, loading } = useAuth();
@@ -80,7 +81,7 @@ export default function App() {
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
         {/* ================= PATIENT ROUTES ================= */}
         <Route element={<ProtectedRoute allowedRoles={["patient"]} />}>
           <Route path="/patient/dashboard" element={<PatientDashboard />} />
