@@ -1,4 +1,4 @@
-const { body, validationResult } = require('express-validator');
+const { body, validationResult, param } = require('express-validator');
 
 const validateEmergency = [
     body('patient')
@@ -44,4 +44,10 @@ const validateStatusUpdate = [
     },
 ];
 
-module.exports = { validateEmergency, validateStatusUpdate };
+const getMongoIdValidate = [
+    param("id")
+        .isMongoId()
+        .withMessage("Invalid MongoDb Id")
+]
+
+module.exports = { validateEmergency, validateStatusUpdate, getMongoIdValidate };
