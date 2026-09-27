@@ -1,10 +1,62 @@
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
+const Appointment = require("../models/Appointment");
+const User = require("../models/User");
 const { sendMessage } = require("../services/chatService");
 
-/**
- * Authenticate a socket connection via JWT passed in handshake auth.
+/*
+ * V4 FIX - Socket.IO Missing Authorization
+ *
+ * Previously any authenticated socket could call join_room / typing /
+ * stop_typing with ANY appointmentId and the server obeyed. The REST
+ * endpoint GET /api/chat/:appointmentId checked ownership, but the real-time
+ * channel did not, so an attacker could silently receive another patient's
+ * live consultation messages and inject events into their room.
+ *
+ * Controls added:
+ *   1. Deny-by-default room authorization (DB check: only the assigned
+ *      patient/doctor may join).
+ *   2. Typing events relayed only for rooms this socket was authorized for.
+ *   3. Strict payload + ObjectId validation (no crash on malformed events,
+ *      no NoSQL-operator objects reaching the database).
+ *   4. Server-owned room names ("appointment:<id>").
+ *   5. Role and isActive reloaded from the DB at connect time.
  */
-const authenticateSocket = (socket, next) => {
+
+const CHAT_ROLES = new Set(["doctor", "patient"]);
+const ROOM_DENIED_MESSAGE = "Not authorized to join this chat";
+
+const roomName = (appointmentId) => `appointment:${appointmentId}`;
+
+const isValidAppointmentId = (value) =>
+  typeof value === "string" && /^[a-f0-9]{24}$/i.test(value);
+
+const readPayload = (payload) =>
+  payload && typeof payload === "object" && !Array.isArray(payload)
+    ? payload
+    : {};
+
+const replyAck = (ack, body) => {
+  if (typeof ack === "function") ack(body);
+};
+
+/** Deny by default: true only for the patient or doctor on the appointment. */
+const isAppointmentParticipant = async ({ appointmentId, userId, role }) => {
+  if (!CHAT_ROLES.has(role) || !isValidAppointmentId(appointmentId)) {
+    return false;
+  }
+  const appointment = await Appointment.findById(appointmentId)
+    .select("patient doctor")
+    .lean();
+  if (!appointment) return false;
+
+  const uid = String(userId);
+  if (role === "doctor") return String(appointment.doctor) === uid;
+  return String(appointment.patient) === uid;
+};
+
+/** Authenticate via JWT, then load CURRENT account state from the DB. */
+const authenticateSocket = async (socket, next) => {
   try {
     const token = socket.handshake.auth?.token || socket.handshake.query?.token;
 
@@ -26,25 +78,35 @@ const authenticateSocket = (socket, next) => {
       decoded = jwt.verify(token, secret);
     } catch (jwtErr) {
       console.error("❌ JWT verification failed:", jwtErr.message);
-      // Check if token is expired
       if (jwtErr.name === "TokenExpiredError") {
         return next(new Error("Authentication error: token expired"));
       }
       return next(new Error(`Authentication error: ${jwtErr.message}`));
     }
 
-    // Validate decoded token has required fields
-    if (!decoded.userId) {
-      console.error("❌ Token missing userId property", decoded);
+    if (!decoded.userId || !mongoose.isValidObjectId(decoded.userId)) {
+      console.error("❌ Token missing/invalid userId property");
       return next(new Error("Authentication error: invalid token structure"));
     }
 
-    socket.user = decoded; // { userId, role, ... }
+    // V4: trust the database, not stale token claims.
+    const user = await User.findById(decoded.userId)
+      .select("role isActive")
+      .lean();
+    if (!user || user.isActive === false) {
+      console.warn(
+        `[SECURITY] Socket rejected for missing/deactivated account userId=${decoded.userId}`,
+      );
+      return next(new Error("Authentication error: account not permitted"));
+    }
+
+    socket.user = { userId: String(user._id), role: user.role };
+    socket.data.authorizedRooms = new Set();
     console.log(
       "✅ Socket authenticated - userId:",
-      decoded.userId,
+      socket.user.userId,
       "role:",
-      decoded.role,
+      socket.user.role,
     );
     next();
   } catch (err) {
@@ -53,12 +115,7 @@ const authenticateSocket = (socket, next) => {
   }
 };
 
-/**
- * Register all Socket.io event handlers on the given io instance.
- * Called once from server.js after the io server is created.
- */
 const registerSocketHandlers = (io) => {
-  // Apply JWT auth middleware to every socket connection
   io.use(authenticateSocket);
 
   io.on("connection", (socket) => {
@@ -67,49 +124,67 @@ const registerSocketHandlers = (io) => {
       `🔌 Socket connected: userId=${userId} role=${role} socketId=${socket.id}`,
     );
 
-    /**
-     * Client joins a room scoped to an appointment.
-     * Event: "join_room"  payload: { appointmentId: string }
-     */
-    socket.on("join_room", ({ appointmentId }) => {
-      if (!appointmentId) {
-        console.warn(`⚠️ Server: join_room called without appointmentId`);
-        return;
-      }
-      socket.join(appointmentId);
-      console.log(
-        `📥 Server: ${role}:${userId} joined room ${appointmentId}, socketId=${socket.id}`,
+    const isAuthorizedForRoom = (appointmentId) =>
+      isValidAppointmentId(appointmentId) &&
+      socket.data.authorizedRooms.has(appointmentId) &&
+      socket.rooms.has(roomName(appointmentId));
+
+    const denyRoom = (appointmentId, reason, ack) => {
+      console.warn(
+        `[SECURITY] join_room denied: ${role}:${userId} appointmentId=${JSON.stringify(appointmentId)} reason=${reason} socketId=${socket.id}`,
       );
-      // Confirm to the joining client that they are now in the room
-      socket.emit("room_joined", { appointmentId });
+      const body = { ok: false, message: ROOM_DENIED_MESSAGE };
+      socket.emit("room_error", body);
+      replyAck(ack, body);
+    };
+
+    socket.on("join_room", async (payload, ack) => {
+      const { appointmentId } = readPayload(payload);
+
+      if (!isValidAppointmentId(appointmentId)) {
+        return denyRoom(appointmentId, "invalid_id", ack);
+      }
+
+      try {
+        const allowed = await isAppointmentParticipant({
+          appointmentId,
+          userId,
+          role,
+        });
+        if (!allowed) return denyRoom(appointmentId, "not_participant", ack);
+
+        socket.data.authorizedRooms.add(appointmentId);
+        socket.join(roomName(appointmentId));
+        console.log(
+          `📥 Server: ${role}:${userId} joined room ${appointmentId}, socketId=${socket.id}`,
+        );
+        socket.emit("room_joined", { appointmentId });
+        replyAck(ack, { ok: true, appointmentId });
+      } catch (err) {
+        console.error("❌ Server: join_room error:", err.message);
+        denyRoom(appointmentId, "lookup_error", ack);
+      }
     });
 
-    /**
-     * Client leaves a room.
-     * Event: "leave_room"  payload: { appointmentId: string }
-     */
-    socket.on("leave_room", ({ appointmentId }) => {
-      if (!appointmentId) {
-        console.warn(`⚠️ Server: leave_room called without appointmentId`);
-        return;
-      }
-      socket.leave(appointmentId);
+    socket.on("leave_room", (payload) => {
+      const { appointmentId } = readPayload(payload);
+      if (!isValidAppointmentId(appointmentId)) return;
+      socket.leave(roomName(appointmentId));
+      socket.data.authorizedRooms.delete(appointmentId);
       console.log(`🚪 Server: ${role}:${userId} left room ${appointmentId}`);
     });
 
-    /**
-     * Client sends a chat message.
-     * Event: "send_message"  payload: { appointmentId, message }
-     * Emits back: "new_message" to all sockets in the room (including sender)
-     *             "send_error"  to sender on failure
-     */
-    socket.on("send_message", async ({ appointmentId, message }) => {
-      try {
-        console.log(`📮 Server: Received send_message from ${role}:${userId}`, {
-          appointmentId,
-          messageLength: message?.length || 0,
-        });
+    socket.on("send_message", async (payload) => {
+      const { appointmentId, message } = readPayload(payload);
 
+      if (!isValidAppointmentId(appointmentId) || typeof message !== "string") {
+        return socket.emit("send_error", {
+          message: "Invalid message request",
+        });
+      }
+
+      try {
+        // chatService.sendMessage re-checks participation against the DB.
         const result = await sendMessage({
           appointmentId,
           senderId: userId,
@@ -118,34 +193,30 @@ const registerSocketHandlers = (io) => {
         });
 
         if (result.status !== 201) {
-          console.error(
-            `❌ Server: sendMessage returned non-201 status:`,
-            result.status,
-          );
+          if (result.status === 403) {
+            console.warn(
+              `[SECURITY] send_message denied: ${role}:${userId} appointmentId=${appointmentId}`,
+            );
+          }
           return socket.emit("send_error", { message: result.data.message });
         }
 
-        // Broadcast to everyone in the room (including sender)
-        console.log(
-          `📡 Server: Broadcasting new_message to room ${appointmentId}, messageId=`,
-          result.data.chat._id,
-        );
-        io.to(appointmentId).emit("new_message", result.data.chat);
+        io.to(roomName(appointmentId)).emit("new_message", result.data.chat);
       } catch (err) {
-        console.error(`❌ Server: send_message error:`, err.message);
+        console.error("❌ Server: send_message error:", err.message);
         socket.emit("send_error", { message: "Failed to send message" });
       }
     });
 
-    /**
-     * Notify room members that this user is typing.
-     * Event: "typing"  payload: { appointmentId, isTyping }
-     */
-    socket.on("typing", ({ appointmentId, isTyping }) => {
-      console.log(
-        `✏️ Server: Received typing event from ${role}:${userId}, appointmentId=${appointmentId}, isTyping=${isTyping}`,
-      );
-      socket.to(appointmentId).emit("user_typing", {
+    socket.on("typing", (payload) => {
+      const { appointmentId, isTyping } = readPayload(payload);
+      if (!isAuthorizedForRoom(appointmentId)) {
+        console.warn(
+          `[SECURITY] typing blocked: ${role}:${userId} not authorized for ${JSON.stringify(appointmentId)}`,
+        );
+        return;
+      }
+      socket.to(roomName(appointmentId)).emit("user_typing", {
         userId,
         role,
         isTyping: !!isTyping,
@@ -153,15 +224,10 @@ const registerSocketHandlers = (io) => {
       });
     });
 
-    /**
-     * Notify room members that this user stopped typing.
-     * Event: "stop_typing"  payload: { appointmentId }
-     */
-    socket.on("stop_typing", ({ appointmentId }) => {
-      console.log(
-        `✏️ Server: Received stop_typing event from ${role}:${userId}, appointmentId=${appointmentId}`,
-      );
-      socket.to(appointmentId).emit("user_typing", {
+    socket.on("stop_typing", (payload) => {
+      const { appointmentId } = readPayload(payload);
+      if (!isAuthorizedForRoom(appointmentId)) return;
+      socket.to(roomName(appointmentId)).emit("user_typing", {
         userId,
         role,
         isTyping: false,
@@ -170,9 +236,16 @@ const registerSocketHandlers = (io) => {
     });
 
     socket.on("disconnect", (reason) => {
+      socket.data.authorizedRooms?.clear();
       console.log(`❌ Socket disconnected: userId=${userId} reason=${reason}`);
     });
   });
 };
 
-module.exports = { registerSocketHandlers };
+module.exports = {
+  registerSocketHandlers,
+  authenticateSocket,
+  isAppointmentParticipant,
+  isValidAppointmentId,
+  roomName,
+};
