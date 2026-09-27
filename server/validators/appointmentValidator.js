@@ -145,6 +145,19 @@ const getAppointmentsRules = [
     }),
 ];
 
+//check ismongo id
+const getAppointmentByIdRules = [
+  param("id")
+    .isMongoId()
+    .withMessage("Invalid mongo Id"),
+];
+
+//check entered delete id is correct
+const deleteAppointmentByIdRule = [
+  param("id")
+    .isMongoId()
+    .withMessage("Invalid mongo Id"),
+];
 
 module.exports = {
   createAppointmentRules,
@@ -152,5 +165,7 @@ module.exports = {
   statusTransitionRules,
   rescheduleRules,
   cancelRules,
-  getAppointmentsRules
+  getAppointmentsRules,
+  getAppointmentByIdRules,
+  deleteAppointmentByIdRule
 };
