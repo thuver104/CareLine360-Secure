@@ -87,6 +87,8 @@ const loginUser = async ({ identifier, password }) => {
   const user = await User.findOne(query);
   if (!user) return { status: 401, data: { message: "Invalid credentials" } };
   if (!user.isActive) return { status: 403, data: { message: "Account is deactivated" } };
+  // Google-only accounts have no password to compare against
+  if (!user.passwordHash) return { status: 401, data: { message: "Invalid credentials" } };
 
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return { status: 401, data: { message: "Invalid credentials" } };
@@ -287,6 +289,7 @@ const resetPasswordWithOtp = async ({ identifier, otp, newPassword }) => {
 
 
 module.exports = {
+  getNextPatientId,
   registerUser,
   loginUser,
   refreshAccessToken,
