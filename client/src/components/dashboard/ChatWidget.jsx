@@ -144,6 +144,7 @@ export default function ChatWidget({ appointment, onClose }) {
     socket.on("user_typing", onUserTyping);
     socket.on("messages_read", onMessagesRead);
     socket.on("send_error", onError);
+    socket.on("room_error", onError); // V4: server denied room access
     socket.on("error", onError);
 
     const onConnect = () => {
@@ -168,6 +169,7 @@ export default function ChatWidget({ appointment, onClose }) {
       socket.off("user_typing", onUserTyping);
       socket.off("messages_read", onMessagesRead);
       socket.off("send_error", onError);
+      socket.off("room_error", onError);
       socket.off("error", onError);
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
