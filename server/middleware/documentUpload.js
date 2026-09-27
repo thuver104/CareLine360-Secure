@@ -1,5 +1,4 @@
 const multer = require("multer");
-const { fileTypeFromBuffer } = require("file-type");
 
 const memoryStorage = multer.memoryStorage();
 
@@ -12,7 +11,7 @@ const allowed = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 
-//improve security
+// Improve security by validating the file extension
 const allowedExtensions = new Set([
   ".pdf",
   ".jpg",
@@ -20,13 +19,15 @@ const allowedExtensions = new Set([
   ".png",
   ".webp",
   ".doc",
-  ".docx"
+  ".docx",
 ]);
-
 
 const documentUpload = multer({
   storage: memoryStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
+  },
+
   fileFilter: (req, file, cb) => {
     if (!allowed.has(file.mimetype)) {
       return cb(
@@ -34,7 +35,6 @@ const documentUpload = multer({
       );
     }
 
-    //to fixed issue check the file extension
     const extension = file.originalname
       .toLowerCase()
       .substring(file.originalname.lastIndexOf("."));
@@ -44,17 +44,20 @@ const documentUpload = multer({
         new Error("Invalid file extension")
       );
     }
+
     cb(null, true);
   },
 });
 
-//to fixed issue check actual file content after multer recieves it
+// Validate the actual file content
 const validateDocumentContent = async (req, res, next) => {
   try {
-
     if (!req.file) {
       return next();
     }
+
+    // file-type v22 is ESM-only, so use dynamic import
+    const { fileTypeFromBuffer } = await import("file-type");
 
     const detectedType = await fileTypeFromBuffer(req.file.buffer);
 
@@ -70,7 +73,7 @@ const validateDocumentContent = async (req, res, next) => {
       });
     }
 
-    //ensure declare allowed type matches actual content
+    // Ensure declared MIME type matches actual content
     if (detectedType.mime !== req.file.mimetype) {
       return res.status(400).json({
         message: "File type does not match its content",
@@ -81,7 +84,8 @@ const validateDocumentContent = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-}
+};
+
 module.exports = {
   documentUpload,
   validateDocumentContent,
