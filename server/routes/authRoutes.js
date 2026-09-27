@@ -15,6 +15,8 @@ const {
 
 const { reactivateAccount } = require("../controllers/patientController");
 
+const { googleLogin } = require("../controllers/oauthController");
+
 const router = express.Router();
 
 const authLimiter = rateLimit({
@@ -53,6 +55,9 @@ router.post(
   ],
   login,
 );
+
+// Google OAuth: exchange code + verify ID token + issue CareLine360 session
+router.post("/google", authLimiter, googleLogin);
 
 router.post(
   "/refresh",
