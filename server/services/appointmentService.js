@@ -2,6 +2,34 @@ const Appointment = require("../models/Appointment");
 const User = require("../models/User");
 const emailService = require("./emailService");
 
+/**
+ * Verify the authenticated user is a party to this appointment.
+ * Ownership is derived only from req.user (never from body/query),
+ * matching the pattern already used in chatService.validateChatAccess.
+ * No admin bypass: no admin appointment-management role currently exists
+ * in the routes/controllers, so admins are not special-cased here.
+ */
+// Works whether `patient`/`doctor` is an unpopulated ObjectId or a populated
+// document/lean object: an ObjectId's own `._id` refers to itself, so reading
+// `._id` first and falling back to the value itself resolves both shapes.
+const resolveRefId = (ref) => (ref?._id ?? ref)?.toString();
+
+const assertAppointmentAccess = (appointment, userId, role) => {
+  const requesterId = userId?.toString();
+  const patientId = resolveRefId(appointment.patient);
+  const doctorId = resolveRefId(appointment.doctor);
+
+  const allowed =
+    (role === "patient" && patientId === requesterId) ||
+    (role === "doctor" && doctorId === requesterId);
+
+  if (!allowed) {
+    const error = new Error("Forbidden: you do not have access to this appointment");
+    error.statusCode = 403;
+    throw error;
+  }
+};
+
 const getAppointmentStats = async (userId, role) => {
   const match = {};
   if (role === "patient") match.patient = userId;
@@ -104,12 +132,16 @@ const getAppointments = async (filters = {}) => {
   };
 };
 
-const getAppointmentById = async (id) => {
+const getAppointmentById = async (id, requestingUser) => {
   const appointment = await Appointment.findById(id).populate("patient doctor").lean();
   if (!appointment) {
     const error = new Error("Appointment not found");
     error.statusCode = 404;
     throw error;
+  }
+
+  if (requestingUser) {
+    assertAppointmentAccess(appointment, requestingUser.userId, requestingUser.role);
   }
 
   // Enrich with Doctor profile (fullName, specialization, avatarUrl) from Doctor model
@@ -126,12 +158,16 @@ const getAppointmentById = async (id) => {
   return appointment;
 };
 
-const updateAppointment = async (id, data) => {
+const updateAppointment = async (id, data, requestingUser) => {
   const appointment = await Appointment.findById(id);
   if (!appointment) {
     const error = new Error("Appointment not found");
     error.statusCode = 404;
     throw error;
+  }
+
+  if (requestingUser) {
+    assertAppointmentAccess(appointment, requestingUser.userId, requestingUser.role);
   }
 
   if (appointment.status !== "pending") {
@@ -154,12 +190,16 @@ const updateAppointment = async (id, data) => {
   return appointment.populate("patient doctor");
 };
 
-const deleteAppointment = async (id) => {
+const deleteAppointment = async (id, requestingUser) => {
   const appointment = await Appointment.findById(id);
   if (!appointment) {
     const error = new Error("Appointment not found");
     error.statusCode = 404;
     throw error;
+  }
+
+  if (requestingUser) {
+    assertAppointmentAccess(appointment, requestingUser.userId, requestingUser.role);
   }
 
   if (appointment.status !== "pending") {
@@ -172,12 +212,16 @@ const deleteAppointment = async (id) => {
   return { message: "Appointment deleted" };
 };
 
-const transitionStatus = async (id, newStatus) => {
+const transitionStatus = async (id, newStatus, requestingUser) => {
   const appointment = await Appointment.findById(id).populate("patient doctor");
   if (!appointment) {
     const error = new Error("Appointment not found");
     error.statusCode = 404;
     throw error;
+  }
+
+  if (requestingUser) {
+    assertAppointmentAccess(appointment, requestingUser.userId, requestingUser.role);
   }
 
   const allowed = VALID_TRANSITIONS[appointment.status];
@@ -203,12 +247,16 @@ const transitionStatus = async (id, newStatus) => {
   return appointment;
 };
 
-const rescheduleAppointment = async (id, newDate, newTime) => {
+const rescheduleAppointment = async (id, newDate, newTime, requestingUser) => {
   const appointment = await Appointment.findById(id).populate("patient doctor");
   if (!appointment) {
     const error = new Error("Appointment not found");
     error.statusCode = 404;
     throw error;
+  }
+
+  if (requestingUser) {
+    assertAppointmentAccess(appointment, requestingUser.userId, requestingUser.role);
   }
 
   if (appointment.status !== "confirmed") {
@@ -243,12 +291,16 @@ const rescheduleAppointment = async (id, newDate, newTime) => {
   return appointment;
 };
 
-const cancelAppointment = async (id, reason) => {
+const cancelAppointment = async (id, reason, requestingUser) => {
   const appointment = await Appointment.findById(id).populate("patient doctor");
   if (!appointment) {
     const error = new Error("Appointment not found");
     error.statusCode = 404;
     throw error;
+  }
+
+  if (requestingUser) {
+    assertAppointmentAccess(appointment, requestingUser.userId, requestingUser.role);
   }
 
   if (appointment.status === "completed" || appointment.status === "cancelled") {
@@ -280,4 +332,5 @@ module.exports = {
   rescheduleAppointment,
   cancelAppointment,
   getAppointmentStats,
+  assertAppointmentAccess,
 };
