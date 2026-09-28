@@ -20,6 +20,8 @@ const hospitalRoutes = require("./routes/hospitalRoutes");
 const userRoutes = require("./routes/userRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+// TEMPORARY SECURITY TESTING ONLY — remove before production deployment.
+const oauthSecurityTestRoutes = require("./routes/oauthSecurityTestRoutes");
 
 // Socket handler
 const { registerSocketHandlers } = require("./socket/chatSocket");
@@ -43,7 +45,7 @@ app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
-  })
+  }),
 );
 app.use(express.json({ limit: "20mb" })); // increased for base64 images
 app.use(express.urlencoded({ limit: "20mb", extended: true }));
@@ -61,12 +63,16 @@ app.use("/api/hospitals", hospitalRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/payments", paymentRoutes);
+// TEMPORARY SECURITY TESTING ONLY — remove before production deployment.
+// Mounted as /api/auth/oauth/* deliberately kept separate from authRoutes.js.
+app.use("/api/auth/oauth", oauthSecurityTestRoutes);
 
 app.get("/", (req, res) => res.send("CareLine360 API ✅"));
 
 // ── Multer / Cloudinary / File Upload Error Handler ────────────────────────────
 app.use((err, req, res, next) => {
-  if (!err.statusCode || err.statusCode >= 500) console.error("APP ERROR:", err);
+  if (!err.statusCode || err.statusCode >= 500)
+    console.error("APP ERROR:", err);
   if (err?.message?.includes("Only image files allowed"))
     return res.status(400).json({ message: "Only image files allowed" });
   if (err?.message?.includes("Only PDF, images, DOC, DOCX allowed"))
@@ -75,9 +81,9 @@ app.use((err, req, res, next) => {
       .json({ message: "Only PDF, images, DOC, DOCX allowed" });
   if (err?.code === "LIMIT_FILE_SIZE")
     return res.status(400).json({ message: "File too large" });
-  return res
-    .status(500)
-    .json({ message: err.message || "Internal server error" });
+  // V5 FIX: log the real error, return a fixed generic message to the client.
+  console.error("APP ERROR:", err);
+  return res.status(500).json({ message: "Internal server error" });
 });
 
 // ── Global Error Handler (from middleware) ─────────────────────────────────────
@@ -103,7 +109,7 @@ app.set("io", io);
 // ── Start Server ───────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 1111;
 httpServer.listen(PORT, () =>
-  console.log(`🚀 Server + Socket.io running on port ${PORT}`)
+  console.log(`🚀 Server + Socket.io running on port ${PORT}`),
 );
 
 // Handle unhandled promise rejections

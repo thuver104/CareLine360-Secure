@@ -94,7 +94,6 @@ const generatePrescriptionPdf = async (req, res) => {
     console.error("Prescription PDF error:", err);
     res.status(500).json({
       message: "Failed to generate prescription PDF",
-      detail: err.message,
     });
   }
 };

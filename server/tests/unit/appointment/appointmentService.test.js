@@ -3,6 +3,13 @@ const mongoose = require("mongoose");
 // Mock the models and email service before requiring the service
 jest.mock("../../../models/Appointment");
 jest.mock("../../../models/User");
+jest.mock("../../../models/Doctor", () => ({
+  findOne: jest.fn().mockReturnValue({
+    select: jest.fn().mockReturnValue({
+      lean: jest.fn().mockResolvedValue(null),
+    }),
+  }),
+}));
 jest.mock("../../../services/emailService", () => ({
   sendAppointmentCreated: jest.fn(),
   sendAppointmentConfirmed: jest.fn(),
@@ -206,7 +213,7 @@ describe("Appointment Service", () => {
   // ─── getAppointmentById ─────────────────────────────────────────────
 
   describe("getAppointmentById", () => {
-    it("should return populated appointment when found", async () => {
+    it("should return populated appointment when found and no requestingUser passed", async () => {
       const mockAppt = {
         _id: new mongoose.Types.ObjectId(),
         patient: { fullName: "Alice" },
@@ -214,7 +221,9 @@ describe("Appointment Service", () => {
       };
 
       Appointment.findById.mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockAppt),
+        populate: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(mockAppt),
+        }),
       });
 
       const result = await appointmentService.getAppointmentById(mockAppt._id);
@@ -224,7 +233,9 @@ describe("Appointment Service", () => {
 
     it("should throw 404 when appointment not found", async () => {
       Appointment.findById.mockReturnValue({
-        populate: jest.fn().mockResolvedValue(null),
+        populate: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(null),
+        }),
       });
 
       await expect(
@@ -233,6 +244,92 @@ describe("Appointment Service", () => {
         statusCode: 404,
         message: "Appointment not found",
       });
+    });
+
+    it("should allow the owning patient to access their appointment", async () => {
+      const patientId = new mongoose.Types.ObjectId();
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        patient: patientId,
+        doctor: new mongoose.Types.ObjectId(),
+      };
+
+      Appointment.findById.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(mockAppt),
+        }),
+      });
+
+      const result = await appointmentService.getAppointmentById(mockAppt._id, {
+        userId: patientId,
+        role: "patient",
+      });
+
+      expect(result).toEqual(mockAppt);
+    });
+
+    it("should allow the owning doctor to access the appointment", async () => {
+      const doctorId = new mongoose.Types.ObjectId();
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        patient: new mongoose.Types.ObjectId(),
+        doctor: doctorId,
+      };
+
+      Appointment.findById.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(mockAppt),
+        }),
+      });
+
+      const result = await appointmentService.getAppointmentById(mockAppt._id, {
+        userId: doctorId,
+        role: "doctor",
+      });
+
+      expect(result).toEqual(mockAppt);
+    });
+
+    it("should reject a non-owning patient (Patient B accessing Patient A's appointment) with 403", async () => {
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        patient: new mongoose.Types.ObjectId(), // Patient A
+        doctor: new mongoose.Types.ObjectId(),
+      };
+
+      Appointment.findById.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(mockAppt),
+        }),
+      });
+
+      await expect(
+        appointmentService.getAppointmentById(mockAppt._id, {
+          userId: new mongoose.Types.ObjectId(), // Patient B
+          role: "patient",
+        })
+      ).rejects.toMatchObject({ statusCode: 403 });
+    });
+
+    it("should reject a non-owning doctor with 403", async () => {
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        patient: new mongoose.Types.ObjectId(),
+        doctor: new mongoose.Types.ObjectId(),
+      };
+
+      Appointment.findById.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(mockAppt),
+        }),
+      });
+
+      await expect(
+        appointmentService.getAppointmentById(mockAppt._id, {
+          userId: new mongoose.Types.ObjectId(),
+          role: "doctor",
+        })
+      ).rejects.toMatchObject({ statusCode: 403 });
     });
   });
 
@@ -324,6 +421,52 @@ describe("Appointment Service", () => {
       expect(Appointment.findOne).not.toHaveBeenCalled();
       expect(mockAppt.save).toHaveBeenCalled();
     });
+
+    it("should allow the owning patient to update their pending appointment", async () => {
+      const patientId = new mongoose.Types.ObjectId();
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        status: "pending",
+        patient: patientId,
+        doctor: new mongoose.Types.ObjectId(),
+        save: jest.fn().mockResolvedValue(true),
+        populate: jest.fn().mockReturnThis(),
+      };
+
+      Appointment.findById.mockResolvedValue(mockAppt);
+
+      const result = await appointmentService.updateAppointment(
+        mockAppt._id,
+        { symptoms: "Updated" },
+        { userId: patientId, role: "patient" }
+      );
+
+      expect(result).toBeDefined();
+      expect(mockAppt.save).toHaveBeenCalled();
+    });
+
+    it("should reject a non-owning patient (Patient B) with 403 and not persist changes", async () => {
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        status: "pending",
+        patient: new mongoose.Types.ObjectId(), // Patient A
+        doctor: new mongoose.Types.ObjectId(),
+        save: jest.fn().mockResolvedValue(true),
+        populate: jest.fn().mockReturnThis(),
+      };
+
+      Appointment.findById.mockResolvedValue(mockAppt);
+
+      await expect(
+        appointmentService.updateAppointment(
+          mockAppt._id,
+          { symptoms: "hacked" },
+          { userId: new mongoose.Types.ObjectId(), role: "patient" } // Patient B
+        )
+      ).rejects.toMatchObject({ statusCode: 403 });
+
+      expect(mockAppt.save).not.toHaveBeenCalled();
+    });
   });
 
   // ─── deleteAppointment ──────────────────────────────────────────────
@@ -369,6 +512,48 @@ describe("Appointment Service", () => {
         statusCode: 400,
         message: expect.stringContaining("pending"),
       });
+    });
+
+    it("should allow the owning patient to delete their pending appointment", async () => {
+      const patientId = new mongoose.Types.ObjectId();
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        status: "pending",
+        patient: patientId,
+        doctor: new mongoose.Types.ObjectId(),
+        deleteOne: jest.fn().mockResolvedValue(true),
+      };
+
+      Appointment.findById.mockResolvedValue(mockAppt);
+
+      const result = await appointmentService.deleteAppointment(mockAppt._id, {
+        userId: patientId,
+        role: "patient",
+      });
+
+      expect(mockAppt.deleteOne).toHaveBeenCalled();
+      expect(result.message).toBe("Appointment deleted");
+    });
+
+    it("should reject a non-owning patient (Patient B) with 403 and not delete", async () => {
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        status: "pending",
+        patient: new mongoose.Types.ObjectId(), // Patient A
+        doctor: new mongoose.Types.ObjectId(),
+        deleteOne: jest.fn().mockResolvedValue(true),
+      };
+
+      Appointment.findById.mockResolvedValue(mockAppt);
+
+      await expect(
+        appointmentService.deleteAppointment(mockAppt._id, {
+          userId: new mongoose.Types.ObjectId(), // Patient B
+          role: "patient",
+        })
+      ).rejects.toMatchObject({ statusCode: 403 });
+
+      expect(mockAppt.deleteOne).not.toHaveBeenCalled();
     });
   });
 
@@ -473,6 +658,51 @@ describe("Appointment Service", () => {
       });
     });
 
+    it("should allow the owning doctor to transition status", async () => {
+      const doctorId = new mongoose.Types.ObjectId();
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        status: "pending",
+        patient: { fullName: "Alice", email: "alice@test.com" },
+        doctor: doctorId,
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      Appointment.findById.mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockAppt),
+      });
+
+      const result = await appointmentService.transitionStatus(mockAppt._id, "confirmed", {
+        userId: doctorId,
+        role: "doctor",
+      });
+
+      expect(result.status).toBe("confirmed");
+    });
+
+    it("should reject a non-owning doctor with 403 and not persist the transition", async () => {
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        status: "pending",
+        patient: { fullName: "Alice", email: "alice@test.com" },
+        doctor: new mongoose.Types.ObjectId(), // owning doctor
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      Appointment.findById.mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockAppt),
+      });
+
+      await expect(
+        appointmentService.transitionStatus(mockAppt._id, "confirmed", {
+          userId: new mongoose.Types.ObjectId(), // different doctor
+          role: "doctor",
+        })
+      ).rejects.toMatchObject({ statusCode: 403 });
+
+      expect(mockAppt.save).not.toHaveBeenCalled();
+    });
+
     it("should call email only on confirmed transition", async () => {
       const mockAppt = {
         _id: new mongoose.Types.ObjectId(),
@@ -568,6 +798,62 @@ describe("Appointment Service", () => {
         statusCode: 400,
         message: expect.stringContaining("confirmed"),
       });
+    });
+
+    it("should allow the owning patient to reschedule their confirmed appointment", async () => {
+      const patientId = new mongoose.Types.ObjectId();
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        status: "confirmed",
+        date: new Date("2026-03-01"),
+        time: "10:00",
+        patient: patientId,
+        doctor: { _id: new mongoose.Types.ObjectId() },
+        rescheduleHistory: [],
+        reminderSent: true,
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      Appointment.findById.mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockAppt),
+      });
+      Appointment.findOne.mockResolvedValue(null);
+
+      const result = await appointmentService.rescheduleAppointment(
+        mockAppt._id,
+        "2026-04-01",
+        "14:00",
+        { userId: patientId, role: "patient" }
+      );
+
+      expect(result.date).toEqual(new Date("2026-04-01"));
+    });
+
+    it("should reject a non-owning patient (Patient B) with 403 and not persist the reschedule", async () => {
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        status: "confirmed",
+        date: new Date("2026-03-01"),
+        time: "10:00",
+        patient: new mongoose.Types.ObjectId(), // Patient A
+        doctor: { _id: new mongoose.Types.ObjectId() },
+        rescheduleHistory: [],
+        reminderSent: true,
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      Appointment.findById.mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockAppt),
+      });
+
+      await expect(
+        appointmentService.rescheduleAppointment(mockAppt._id, "2026-04-01", "14:00", {
+          userId: new mongoose.Types.ObjectId(), // Patient B
+          role: "patient",
+        })
+      ).rejects.toMatchObject({ statusCode: 403 });
+
+      expect(mockAppt.save).not.toHaveBeenCalled();
     });
 
     it("should throw 409 on double booking", async () => {
@@ -724,6 +1010,51 @@ describe("Appointment Service", () => {
       ).rejects.toMatchObject({
         statusCode: 400,
       });
+    });
+
+    it("should allow the owning doctor to cancel the appointment", async () => {
+      const doctorId = new mongoose.Types.ObjectId();
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        status: "pending",
+        patient: { fullName: "Alice", email: "alice@test.com" },
+        doctor: doctorId,
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      Appointment.findById.mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockAppt),
+      });
+
+      const result = await appointmentService.cancelAppointment(mockAppt._id, "Doctor unavailable", {
+        userId: doctorId,
+        role: "doctor",
+      });
+
+      expect(result.status).toBe("cancelled");
+    });
+
+    it("should reject a non-owning doctor with 403 and not persist the cancellation", async () => {
+      const mockAppt = {
+        _id: new mongoose.Types.ObjectId(),
+        status: "pending",
+        patient: { fullName: "Alice", email: "alice@test.com" },
+        doctor: new mongoose.Types.ObjectId(), // owning doctor
+        save: jest.fn().mockResolvedValue(true),
+      };
+
+      Appointment.findById.mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockAppt),
+      });
+
+      await expect(
+        appointmentService.cancelAppointment(mockAppt._id, "reason", {
+          userId: new mongoose.Types.ObjectId(), // different doctor
+          role: "doctor",
+        })
+      ).rejects.toMatchObject({ statusCode: 403 });
+
+      expect(mockAppt.save).not.toHaveBeenCalled();
     });
 
     it("should call email notification after cancellation", async () => {
