@@ -146,11 +146,23 @@ const sendEmailVerificationOtp = async ({ identifier }) => {
     ? { email: identifier.toLowerCase() }
     : { phone: identifier };
 
-  const user = await User.findOne(query);
-  if (!user) return { status: 404, data: { message: "User not found" } };
 
-  if (!user.email) return { status: 400, data: { message: "Email not available for this account" } };
-  if (user.isVerified) return { status: 200, data: { message: "Email already verified" } };
+  // VULNERABLE CODE  
+  //const user = await User.findOne(query);
+  //if (!user) return { status: 404, data: { message: "User not found" } };
+
+  //if (!user.email) return { status: 400, data: { message: "Email not available for this account" } };
+  //if (user.isVerified) return { status: 200, data: { message: "Email already verified" } };
+
+
+  // FIXED CODE
+  // Generic response prevents user enumeration (CWE-203)
+  const generic = { status: 200, data: { message: "If this account exists, a verification code has been sent." } };
+
+  const user = await User.findOne(query);
+  if (!user || !user.email || user.isVerified) return generic;
+
+
 
   // remove old OTPs for this purpose
   await Otp.deleteMany({ userId: user._id, purpose: "EMAIL_VERIFY" });
@@ -173,8 +185,10 @@ const sendEmailVerificationOtp = async ({ identifier }) => {
       <p>This code expires in 10 minutes.</p>
     `,
   });
+  // Prevent information disclosure
+  //return { status: 200, data: { message: "Verification OTP sent to email" } };
 
-  return { status: 200, data: { message: "Verification OTP sent to email" } };
+  return generic;
 };
 
 const verifyEmailOtp = async ({ identifier, otp }) => {
@@ -183,7 +197,9 @@ const verifyEmailOtp = async ({ identifier, otp }) => {
     : { phone: identifier };
 
   const user = await User.findOne(query);
-  if (!user) return { status: 404, data: { message: "User not found" } };
+  
+  //if (!user) return { status: 404, data: { message: "User not found" } };
+    if (!user) return { status: 400, data: { message: "Invalid or expired OTP" } };
 
   const record = await Otp.findOne({ userId: user._id, purpose: "EMAIL_VERIFY" });
   if (!record) return { status: 400, data: { message: "OTP not found or expired" } };
@@ -217,10 +233,16 @@ const sendPasswordResetOtp = async ({ identifier }) => {
     ? { email: identifier.toLowerCase() }
     : { phone: identifier };
 
-  const user = await User.findOne(query);
-  if (!user) return { status: 404, data: { message: "User not found" } };
+  //const user = await User.findOne(query);
+  //if (!user) return { status: 404, data: { message: "User not found" } };
+  //if (!user.email) return { status: 400, data: { message: "Email not available for this account" } };
 
-  if (!user.email) return { status: 400, data: { message: "Email not available for this account" } };
+  // Generic response prevents user enumeration (CWE-203)
+  const generic = { status: 200, data: { message: "If this account exists, a password reset code has been sent." } };
+  const user = await User.findOne(query);
+  if (!user || !user.email) return generic;
+
+
 
   await Otp.deleteMany({ userId: user._id, purpose: "PASSWORD_RESET" });
 
@@ -243,7 +265,10 @@ const sendPasswordResetOtp = async ({ identifier }) => {
     `,
   });
 
-  return { status: 200, data: { message: "Password reset OTP sent to email" } };
+  // Prevent information disclosure
+  //return { status: 200, data: { message: "Password reset OTP sent to email" } };
+
+  return generic;
 };
 
 const resetPasswordWithOtp = async ({ identifier, otp, newPassword }) => {
@@ -252,8 +277,8 @@ const resetPasswordWithOtp = async ({ identifier, otp, newPassword }) => {
     : { phone: identifier };
 
   const user = await User.findOne(query);
-  if (!user) return { status: 404, data: { message: "User not found" } };
-
+  //if (!user) return { status: 404, data: { message: "User not found" } };
+    if (!user) return { status: 400, data: { message: "Invalid or expired OTP" } };
   const record = await Otp.findOne({ userId: user._id, purpose: "PASSWORD_RESET" });
   if (!record) return { status: 400, data: { message: "OTP not found or expired" } };
 

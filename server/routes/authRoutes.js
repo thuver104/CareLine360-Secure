@@ -115,6 +115,7 @@ router.post(
 
 router.post(
   "/reactivate",
+  authLimiter,
   reactivateAccount
 );
 
