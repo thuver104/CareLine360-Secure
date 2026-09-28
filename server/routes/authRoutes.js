@@ -2,6 +2,7 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const { body } = require("express-validator");
 const { authMiddleware } = require("../middleware/auth");
+
 const {
   register,
   login,
@@ -14,7 +15,6 @@ const {
 } = require("../controllers/authController");
 
 const { reactivateAccount } = require("../controllers/patientController");
-
 const { googleLogin } = require("../controllers/oauthController");
 
 const router = express.Router();
@@ -25,6 +25,7 @@ const authLimiter = rateLimit({
   message: { message: "Too many attempts, try again later" },
 });
 
+// Register
 router.post(
   "/register",
   authLimiter,
@@ -32,8 +33,15 @@ router.post(
     body("role")
       .isIn(["patient", "doctor"])
       .withMessage("Role must be patient or doctor"),
-    body("fullName").notEmpty().withMessage("fullName required"),
-    body("identifier").notEmpty().withMessage("Email or phone is required"),
+
+    body("fullName")
+      .notEmpty()
+      .withMessage("fullName required"),
+
+    body("identifier")
+      .notEmpty()
+      .withMessage("Email or phone is required"),
+
     body("password")
       .isLength({ min: 8 })
       .matches(/[A-Z]/)
@@ -46,27 +54,39 @@ router.post(
   register,
 );
 
+// Login
 router.post(
   "/login",
   authLimiter,
   [
-    body("identifier").notEmpty().withMessage("Email or phone is required"),
-    body("password").notEmpty().withMessage("Password is required"),
+    body("identifier")
+      .notEmpty()
+      .withMessage("Email or phone is required"),
+
+    body("password")
+      .notEmpty()
+      .withMessage("Password is required"),
   ],
   login,
 );
 
-// Google OAuth: exchange code + verify ID token + issue CareLine360 session
+// Google OAuth
+// Exchange authorization code, verify Google ID token,
+// and issue CareLine360 session
 router.post("/google", authLimiter, googleLogin);
 
+// Refresh token
 router.post(
   "/refresh",
   authLimiter,
   [body("refreshToken").notEmpty()],
   refresh,
 );
+
+// Logout
 router.post("/logout", authMiddleware, logout);
 
+// Current authenticated user
 router.get("/me", authMiddleware, async (req, res) => {
   try {
     const User = require("../models/User");
@@ -100,18 +120,25 @@ router.get("/me", authMiddleware, async (req, res) => {
   }
 });
 
+// Send email verification OTP
 router.post(
   "/email/send-verify-otp",
   authLimiter,
-  [body("identifier").notEmpty().withMessage("Email or phone is required")],
+  [
+    body("identifier")
+      .notEmpty()
+      .withMessage("Email or phone is required"),
+  ],
   sendVerifyEmailOtp,
 );
 
+// Verify email OTP
 router.post(
   "/email/verify-otp",
   authLimiter,
   [
     body("identifier").notEmpty(),
+
     body("otp")
       .isLength({ min: 6, max: 6 })
       .withMessage("OTP must be 6 digits"),
@@ -119,19 +146,28 @@ router.post(
   confirmVerifyEmailOtp,
 );
 
+// Forgot password
 router.post(
   "/password/forgot",
   authLimiter,
-  [body("identifier").notEmpty().withMessage("Email or phone is required")],
+  [
+    body("identifier")
+      .notEmpty()
+      .withMessage("Email or phone is required"),
+  ],
   forgotPassword,
 );
 
+// Reset password
 router.post(
   "/password/reset",
   authLimiter,
   [
     body("identifier").notEmpty(),
-    body("otp").isLength({ min: 6, max: 6 }),
+
+    body("otp")
+      .isLength({ min: 6, max: 6 }),
+
     body("newPassword")
       .isLength({ min: 8 })
       .matches(/[A-Z]/)
@@ -141,6 +177,11 @@ router.post(
   resetPassword,
 );
 
-router.post("/reactivate", reactivateAccount);
+// Reactivate account
+router.post(
+  "/reactivate",
+  authLimiter,
+  reactivateAccount,
+);
 
 module.exports = router;
