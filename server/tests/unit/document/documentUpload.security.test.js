@@ -83,35 +83,35 @@ describe("V8 - Insecure File Upload Security Tests", () => {
          */
         const realPdfContent = Buffer.from(
             `%PDF-1.4
-1 0 obj
-<<
-/Type /Catalog
-/Pages 2 0 R
->>
-endobj
+                1 0 obj
+                <<
+                /Type /Catalog
+                /Pages 2 0 R
+                >>
+                endobj
 
-2 0 obj
-<<
-/Type /Pages
-/Count 0
-/Kids []
->>
-endobj
+                2 0 obj
+                <<
+                /Type /Pages
+                /Count 0
+                /Kids []
+                >>
+                endobj
 
-xref
-0 3
-0000000000 65535 f
-0000000009 00000 n
-0000000074 00000 n
+                xref
+                0 3
+                0000000000 65535 f
+                0000000009 00000 n
+                0000000074 00000 n
 
-trailer
-<<
-/Size 3
-/Root 1 0 R
->>
-startxref
-129
-%%EOF`
+                trailer
+                <<
+                /Size 3
+                /Root 1 0 R
+                >>
+                startxref
+                129
+                %%EOF`
         );
 
         const genuinePdf = {
