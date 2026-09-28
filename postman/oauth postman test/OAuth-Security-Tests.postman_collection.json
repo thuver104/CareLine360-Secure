@@ -1,0 +1,590 @@
+{
+  "info": {
+    "_postman_id": "oauth-security-tests-001",
+    "name": "CareLine360 - OAuth Security Control Tests",
+    "description": "Security evidence-gathering collection for the standalone Google OAuth/OIDC security validators in server/middleware/oauthSecurity.js, exercised via the TEMPORARY testing endpoint POST /api/auth/oauth/security-test (server/controllers/oauthSecurityTestController.js). This does NOT exercise the real Google OAuth authorization-code flow, ID-token verification, or session/JWT issuance — those are owned by other team members and are not implemented here. This endpoint and route must be removed before production deployment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. State (CSRF) Validation",
+      "item": [
+        {
+          "name": "State - valid matching state",
+          "id": "oauth-state-valid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is true', function () { pm.expect(pm.response.json().valid).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"state\",\n  \"receivedState\": \"abc123\",\n  \"expectedState\": \"abc123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "Matching state value must be accepted (CSRF defense passes)."
+          },
+          "response": []
+        },
+        {
+          "name": "State - mismatched state (CSRF attack)",
+          "id": "oauth-state-mismatch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is false', function () { pm.expect(pm.response.json().valid).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"state\",\n  \"receivedState\": \"attacker-supplied-state\",\n  \"expectedState\": \"abc123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "Simulates a CSRF attempt with a forged/mismatched state value. Must be rejected (valid: false), but still HTTP 200 since this is a testing endpoint reporting a validation outcome."
+          },
+          "response": []
+        },
+        {
+          "name": "State - missing state",
+          "id": "oauth-state-missing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is false', function () { pm.expect(pm.response.json().valid).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"state\",\n  \"expectedState\": \"abc123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "receivedState omitted entirely — must be rejected."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Nonce (OIDC Replay) Validation",
+      "item": [
+        {
+          "name": "Nonce - valid matching nonce",
+          "id": "oauth-nonce-valid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is true', function () { pm.expect(pm.response.json().valid).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"nonce\",\n  \"receivedNonce\": \"n-12345\",\n  \"expectedNonce\": \"n-12345\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "Matching nonce must be accepted (OIDC ID-token replay defense passes)."
+          },
+          "response": []
+        },
+        {
+          "name": "Nonce - mismatched nonce (replay attack)",
+          "id": "oauth-nonce-mismatch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is false', function () { pm.expect(pm.response.json().valid).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"nonce\",\n  \"receivedNonce\": \"replayed-old-nonce\",\n  \"expectedNonce\": \"n-12345\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "Simulates a replayed/forged ID-token nonce. Must be rejected."
+          },
+          "response": []
+        },
+        {
+          "name": "Nonce - missing nonce",
+          "id": "oauth-nonce-missing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is false', function () { pm.expect(pm.response.json().valid).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"nonce\",\n  \"expectedNonce\": \"n-12345\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "receivedNonce omitted entirely — must be rejected."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Redirect URI Allowlist Validation",
+      "item": [
+        {
+          "name": "Redirect - exact match (allowed)",
+          "id": "oauth-redirect-valid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is true', function () { pm.expect(pm.response.json().valid).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"redirect\",\n  \"redirectUri\": \"http://localhost:5173/auth/google/callback\",\n  \"allowedRedirectUri\": \"http://localhost:5173/auth/google/callback\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "Exact match against the allowed redirect URI must be accepted."
+          },
+          "response": []
+        },
+        {
+          "name": "Redirect - unauthorized host (open redirect attack)",
+          "id": "oauth-redirect-unauthorized-host",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is false', function () { pm.expect(pm.response.json().valid).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"redirect\",\n  \"redirectUri\": \"http://attacker.example.com/callback\",\n  \"allowedRedirectUri\": \"http://localhost:5173/auth/google/callback\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "Simulates an open-redirect attack pointing to an attacker-controlled host. Must be rejected."
+          },
+          "response": []
+        },
+        {
+          "name": "Redirect - subpath variant (not exact match)",
+          "id": "oauth-redirect-subpath",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is false', function () { pm.expect(pm.response.json().valid).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"redirect\",\n  \"redirectUri\": \"http://localhost:5173/auth/google/callback/extra\",\n  \"allowedRedirectUri\": \"http://localhost:5173/auth/google/callback\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "Proves the allowlist check is an EXACT match, not a prefix/substring match. A trailing subpath must be rejected."
+          },
+          "response": []
+        },
+        {
+          "name": "Redirect - missing redirectUri",
+          "id": "oauth-redirect-missing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is false', function () { pm.expect(pm.response.json().valid).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"redirect\",\n  \"allowedRedirectUri\": \"http://localhost:5173/auth/google/callback\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "redirectUri omitted entirely — must be rejected."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. PKCE (S256) Validation",
+      "item": [
+        {
+          "name": "PKCE - valid code_verifier/code_challenge (S256)",
+          "id": "oauth-pkce-valid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is true', function () { pm.expect(pm.response.json().valid).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"pkce\",\n  \"codeVerifier\": \"{{validCodeVerifier}}\",\n  \"expectedCodeChallenge\": \"{{validCodeChallenge}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "codeVerifier must be 43-128 chars from the RFC 7636 unreserved charset [A-Za-z0-9-._~]. expectedCodeChallenge must be its base64url(SHA256(codeVerifier)) value. Compute both in the environment before running (see V1_OAUTH_ENDPOINTS.md for a ready-made pair)."
+          },
+          "response": []
+        },
+        {
+          "name": "PKCE - wrong code_verifier (brute-force / mismatch)",
+          "id": "oauth-pkce-wrong-verifier",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is false', function () { pm.expect(pm.response.json().valid).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"pkce\",\n  \"codeVerifier\": \"{{wrongCodeVerifier}}\",\n  \"expectedCodeChallenge\": \"{{validCodeChallenge}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "A different, well-formed 43-char verifier that does not hash to the expected challenge. Must be rejected."
+          },
+          "response": []
+        },
+        {
+          "name": "PKCE - invalid format (too short)",
+          "id": "oauth-pkce-too-short",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is false', function () { pm.expect(pm.response.json().valid).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"pkce\",\n  \"codeVerifier\": \"tooshort\",\n  \"expectedCodeChallenge\": \"{{validCodeChallenge}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "codeVerifier below the RFC 7636 minimum of 43 characters. Must be rejected before hashing (invalid_pkce_verifier_format)."
+          },
+          "response": []
+        },
+        {
+          "name": "PKCE - invalid format (bad characters)",
+          "id": "oauth-pkce-invalid-chars",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is false', function () { pm.expect(pm.response.json().valid).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"pkce\",\n  \"codeVerifier\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa+/\",\n  \"expectedCodeChallenge\": \"{{validCodeChallenge}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "codeVerifier contains characters outside the RFC 7636 unreserved charset (+ and /). Must be rejected before hashing."
+          },
+          "response": []
+        },
+        {
+          "name": "PKCE - missing codeVerifier",
+          "id": "oauth-pkce-missing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('valid is false', function () { pm.expect(pm.response.json().valid).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"pkce\",\n  \"expectedCodeChallenge\": \"{{validCodeChallenge}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "codeVerifier omitted entirely — must be rejected."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Malformed Request Handling",
+      "item": [
+        {
+          "name": "Missing 'test' field (expect 400)",
+          "id": "oauth-malformed-missing-test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status is 400', function () { pm.response.to.have.status(400); });"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "No 'test' field at all. This is the only case that returns HTTP 400 — a malformed test request, not a security validation outcome."
+          },
+          "response": []
+        },
+        {
+          "name": "Unsupported 'test' value (expect 400)",
+          "id": "oauth-malformed-unsupported-test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status is 400', function () { pm.response.to.have.status(400); });"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test\": \"not-a-real-test\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:1111/api/auth/oauth/security-test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "1111",
+              "path": ["api", "auth", "oauth", "security-test"]
+            },
+            "description": "'test' value not one of state/nonce/redirect/pkce. Must return 400."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
