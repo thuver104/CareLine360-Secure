@@ -8,7 +8,17 @@ const userSchema = new mongoose.Schema(
     email: { type: String, lowercase: true, trim: true, unique: true, sparse: true },
     phone: { type: String, trim: true, unique: true, sparse: true },
 
-    passwordHash: { type: String, required: true },
+    // How the account was originally created. Google-created accounts have no password.
+    authProvider: { type: String, enum: ["local", "google"], default: "local" },
+    // Google's stable account id ("sub" claim), set when a Google identity is linked
+    googleId: { type: String, unique: true, sparse: true },
+
+    passwordHash: {
+      type: String,
+      required: function () {
+        return this.authProvider !== "google";
+      },
+    },
 
     isVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },

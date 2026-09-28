@@ -122,6 +122,7 @@ export default function ChatPage() {
     socket.on("room_joined", handleRoomJoined);
     socket.on("user_typing", handleUserTyping);
     socket.on("error", handleError);
+    socket.on("room_error", handleError); // V4: server denied room access
 
     return () => {
       socket.off("connect", onConnect);
@@ -130,6 +131,7 @@ export default function ChatPage() {
       socket.off("room_joined", handleRoomJoined);
       socket.off("user_typing", handleUserTyping);
       socket.off("error", handleError);
+      socket.off("room_error", handleError);
     };
   }, [id, currentUser]);
 

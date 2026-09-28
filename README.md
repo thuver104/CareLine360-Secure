@@ -520,19 +520,559 @@ artillery run tests/artillery/load-test.yml
 
 ---
 
-## Contributors
+---
 
-> **SLIIT** | Year 3 Semester 2 — Application Frameworks Module
-> **Group ID:** Y3S2-SE-80
+## Security Assessment & Secure Software Development Assignment
 
-| Name          | Student ID | Component                       |
-| ------------- | ---------- | ------------------------------- |
-| K. Vanayalini | IT23193840 | Emergency & Hospital Management |
-| T. Thuvarekan | IT23281332 | Doctor Management               |
-| B. Clarin     | IT23402584 | Admin Dashboard                 |
-| G. Shajana    | IT23164208 | Appointment & Consultation      |
+This repository contains the security-enhanced version of the CareLine360 MERN application prepared for the **Secure Software Development** assignment.
+
+### Repository References
+
+| Repository | Purpose |
+|---|---|
+| [Original CareLine360-WebApp-MERN](https://github.com/clerin-codes/CareLine360-WebApp-MERN) | Original application used as the vulnerable baseline |
+| [CareLine360-Secure](https://github.com/thuver104/CareLine360-Secure) | Security assessment and remediation repository |
+| `v1.0-vulnerable` | Baseline tag used to identify the original vulnerable state |
+
+The assessment identifies multiple distinct security weaknesses in the original application. Each team member was responsible for specific vulnerabilities and a defined part of the OAuth/OIDC implementation.
+
+## Final Team Distribution
+
+| Member | Student ID | Vulnerability Responsibilities | OAuth / OIDC Responsibility |
+|---|---|---|---|
+| **Member 1 – Clerin B** | **IT23402584** | **V1 – IDOR / Broken Access Control**<br>**V2 – Mass Assignment** | OAuth provider configuration, security controls and OAuth security testing |
+| **Member 2 – Poojani K.H.S** | **IT23214002** | **V3 – Missing Authentication**<br>**V4 – Socket.IO Missing Authorization**<br>**V5 – Internal Error Information Leakage** | Core backend OAuth flow: authorization-code exchange, Google ID-token verification and CareLine360 JWT/session issuance |
+| **Member 3 – Thuverakan T** | **IT23281332** | **V6 – User Enumeration + Weak OTP**<br>**V7 – Missing Rate Limiting** | Local user/account mapping, account creation/linking and CareLine360 role handling |
+| **Member 4 – Sonali G.D.D** | **IT23211896** | **V8 – Insecure File Upload**<br>**V9 – Improper Input Validation**<br>**V10 – Vulnerable Dependencies** | Frontend Google Sign-In, PKCE generation, OAuth callback handling and frontend success/error flow |
+
+# Vulnerability Assessment and Remediation
+
+## V1 – IDOR / Broken Access Control
+
+### Original Vulnerability
+
+The appointment endpoints allowed an authenticated user to access appointment resources by supplying an appointment ID without verifying that the appointment belonged to the requesting user.
+
+The original service logic retrieved appointments using the ID alone, such as:
+
+```javascript
+Appointment.findById(id)
+```
+
+Authentication established the user's identity, but object-level authorization was not enforced before appointment operations.
+
+### Before
+
+A test using two patient accounts demonstrated the issue:
+
+```text
+Patient A
+   ↓
+Creates appointment
+   ↓
+Appointment ID
+   ↓
+Patient B token + Patient A appointment ID
+   ↓
+200 OK
+Patient A appointment data returned
+```
+
+### Remediation
+
+The appointment service was updated to verify ownership before performing ID-based operations.
+
+The authorization check compares the authenticated user's ID and role against the appointment's patient or doctor.
+
+The check is applied to:
+
+- Get appointment
+- Update appointment
+- Delete appointment
+- Transition appointment status
+- Reschedule appointment
+- Cancel appointment
+
+Unauthorized users receive:
+
+```text
+403 Forbidden
+```
+
+### After
+
+```text
+Patient B token
+      +
+Patient A appointment ID
+      ↓
+Ownership check
+      ↓
+403 Forbidden
+```
+
+The legitimate owner can still access the appointment successfully.
+
+### Verification
+
+- Appointment service tests: **62 passed**
+- Appointment controller tests: **15 passed**
+- **Total: 77 tests passed**
+
+The tests also verify that unauthorized requests do not proceed to save or delete operations.
 
 ---
+
+## V2 – Mass Assignment
+
+### Original Vulnerability
+
+The emergency-case creation endpoint accepted the complete request body and passed it directly into the service layer:
+
+```javascript
+const emergency = await emergencyService.createEmergency({
+  ...req.body,
+  patient: req.user.userId,
+});
+```
+
+This allowed client-controlled fields to reach the Mongoose model even when those fields should be controlled by the server.
+
+Examples included:
+
+- `status`
+- `responderName`
+- `resolvedAt`
+- `responseTime`
+- `triggeredAt`
+
+### Before
+
+A malicious request could include restricted fields such as:
+
+```json
+{
+  "description": "Mass assignment test",
+  "latitude": 6.9271,
+  "longitude": 79.8612,
+  "status": "RESOLVED",
+  "responderName": "Injected Responder Name",
+  "resolvedAt": "2020-01-01T00:00:00.000Z",
+  "responseTime": 0
+}
+```
+
+Before the fix, the endpoint accepted these attacker-controlled fields.
+
+### Remediation
+
+The controller was changed to explicitly select only fields that the patient is allowed to submit:
+
+```javascript
+const { description, latitude, longitude } = req.body;
+
+const emergency = await emergencyService.createEmergency({
+  description,
+  latitude,
+  longitude,
+  patient: req.user.userId,
+});
+```
+
+### After
+
+The same malicious request can still create a legitimate emergency case, but restricted fields are no longer accepted from the client.
+
+For example:
+
+```text
+status → PENDING
+```
+
+instead of allowing:
+
+```text
+status → RESOLVED
+```
+
+### Verification
+
+A dedicated controller test suite was added.
+
+```text
+9 tests passed
+```
+
+---
+
+## V3 – Missing Authentication
+
+The original application contained endpoints where authentication was missing or insufficiently enforced.
+
+### Before
+
+```text
+Unauthenticated request
+        ↓
+Protected endpoint
+        ↓
+Request processed
+```
+
+### After
+
+Authentication middleware is enforced on protected API operations so that the application verifies the user's authentication credentials before processing the request.
+
+```text
+Unauthenticated request
+        ↓
+Authentication middleware
+        ↓
+401 Unauthorized
+```
+
+**Detailed implementation evidence and test results are maintained by Member 2.**
+
+---
+
+## V4 – Socket.IO Missing Authorization
+
+The Socket.IO implementation was assessed for appointment-level authorization in real-time communication.
+
+Authentication alone is not sufficient for appointment-scoped chat. A connected user must also be authorized to access the requested appointment or chat room.
+
+### Before
+
+```text
+Authenticated user
+        ↓
+Socket.IO room/event
+        ↓
+Insufficient appointment authorization
+```
+
+### After
+
+```text
+Authenticated user
+        ↓
+Appointment access check
+        ↓
+Authorized → allow
+Unauthorized → reject
+```
+
+**Detailed implementation evidence and test results are maintained by Member 2.**
+
+---
+
+## V5 – Internal Error Information Leakage
+
+The application was assessed for error responses that could expose unnecessary internal implementation details.
+
+### Risk
+
+Detailed errors can reveal database operations, file paths, stack traces, or other implementation information.
+
+### After
+
+Production-facing responses should return controlled user-safe messages while diagnostic information remains restricted to server-side logging.
+
+**Detailed implementation evidence and test results are maintained by Member 2.**
+
+---
+
+## V6 – User Enumeration + Weak OTP
+
+The authentication and OTP functionality was assessed for user-enumeration behavior and weak OTP protection.
+
+### Risk
+
+Authentication-related responses can unintentionally reveal whether an account exists. Weak OTP controls can also increase the risk of unauthorized verification or account-recovery attempts.
+
+### Remediation Scope
+
+The security work covers consistent account-related responses and stronger OTP handling to reduce information disclosure and make OTP verification more resistant to guessing and abuse.
+
+**Detailed implementation evidence and test results are maintained by Member 3.**
+
+---
+
+## V7 – Missing Rate Limiting
+
+Authentication and sensitive endpoints were assessed for missing request-rate controls.
+
+### Risk
+
+Without rate limiting, attackers can repeatedly submit login, OTP, and password-recovery requests.
+
+### Remediation Scope
+
+Rate limiting is applied to sensitive repeated operations so excessive requests can be restricted.
+
+**Detailed implementation evidence and test results are maintained by Member 3.**
+
+---
+
+## V8 – Insecure File Upload
+
+The application's file-upload functionality was assessed for insufficient restrictions on uploaded files.
+
+### Risk
+
+Unrestricted uploads can introduce risks related to unsafe file types, unexpected content, excessive file sizes, and malicious files.
+
+### Remediation Scope
+
+The upload process should validate file type, size, and other relevant constraints before accepting a file.
+
+**Detailed implementation evidence and test results are maintained by Member 4.**
+
+---
+
+## V9 – Improper Input Validation
+
+The application was assessed for endpoints where user-controlled input was not sufficiently validated before processing.
+
+### Risk
+
+Insufficient validation can result in invalid application state, malformed requests, and business-logic abuse.
+
+### Remediation Scope
+
+Request validation uses explicit rules appropriate to each endpoint rather than trusting client-provided values.
+
+**Detailed implementation evidence and test results are maintained by Member 4.**
+
+---
+
+## V10 – Vulnerable Dependencies
+
+Third-party dependencies were reviewed for known security vulnerabilities.
+
+### Remediation Scope
+
+Dependencies should be regularly audited and updated to secure compatible versions.
+
+```bash
+npm audit
+npm outdated
+```
+
+**Detailed implementation evidence and test results are maintained by Member 4.**
+
+# OAuth / OpenID Connect Implementation
+
+OAuth/OIDC was implemented as a shared assignment requirement, with each member responsible for a defined part of the authentication flow.
+
+## OAuth Responsibility Distribution
+
+### Member 1 – Provider Configuration and Security Controls
+
+- Google OAuth provider configuration
+- Authorized JavaScript origin and redirect URI
+- Secure environment-variable configuration
+- State validation
+- OIDC nonce validation
+- Strict redirect URI validation
+- PKCE validation
+- Timing-safe comparisons
+- OAuth security testing
+
+### Member 2 – Core Backend OAuth Flow
+
+- Authorization-code exchange
+- Google ID-token verification
+- Backend OAuth processing
+- CareLine360 JWT/session issuance
+
+### Member 3 – Local Account Integration
+
+- OAuth identity to local CareLine360 user mapping
+- New account creation
+- Existing account linking
+- Duplicate account prevention
+- CareLine360 role handling and preservation
+
+### Member 4 – Frontend OAuth Flow
+
+- Google Sign-In
+- PKCE generation
+- OAuth callback handling
+- Successful authentication flow
+- OAuth error handling
+
+## OAuth Security Controls
+
+### State Validation
+
+The OAuth `state` parameter is validated against the expected value to reduce the risk of authorization-request forgery.
+
+### OIDC Nonce Validation
+
+The OIDC `nonce` value is validated to ensure that the received identity token corresponds to the expected authentication request.
+
+### Strict Redirect URI Validation
+
+The redirect URI is checked against the configured allowed URI rather than accepting arbitrary redirect destinations.
+
+### PKCE
+
+The implementation validates the PKCE code verifier and derives the S256 code challenge.
+
+### Timing-Safe Comparisons
+
+Security-sensitive values use timing-safe comparison logic.
+
+## OAuth Security Testing
+
+Automated and manual security tests were performed for the OAuth security controls.
+
+### Automated Testing
+
+```text
+OAuth unit/controller tests: 58 passed
+```
+
+The security demonstration included:
+
+```text
+Invalid/attack cases rejected: 14/14
+Valid cases accepted:           4/4
+```
+
+### Manual Testing
+
+Manual Postman testing covered scenarios including:
+
+- Invalid state
+- Valid state
+- Invalid nonce
+- Valid nonce
+- Invalid redirect URI
+- Valid redirect URI
+- Invalid PKCE values
+- Valid PKCE values
+
+OAuth credentials and secrets are stored in environment variables and are not committed to the repository.
+
+# Security Testing Summary
+
+| Security Area | Responsible Member | Verification |
+|---|---|---|
+| V1 – IDOR / Broken Access Control | Clerin B | 77 automated tests + before/after API PoC |
+| V2 – Mass Assignment | Clerin B | 9 controller tests + before/after API PoC |
+| V3 – Missing Authentication | Poojani K.H.S | Member 2 security tests/evidence |
+| V4 – Socket.IO Missing Authorization | Poojani K.H.S | Member 2 security tests/evidence |
+| V5 – Information Leakage | Poojani K.H.S | Member 2 security tests/evidence |
+| V6 – User Enumeration + Weak OTP | Thuverakan T | Member 3 security tests/evidence |
+| V7 – Missing Rate Limiting | Thuverakan T | Member 3 security tests/evidence |
+| V8 – Insecure File Upload | Sonali G.D.D | Member 4 security tests/evidence |
+| V9 – Improper Input Validation | Sonali G.D.D | Member 4 security tests/evidence |
+| V10 – Vulnerable Dependencies | Sonali G.D.D | Member 4 security tests/evidence |
+| OAuth Security Controls | Clerin B | 58 tests + manual Postman security testing |
+| OAuth Core Backend | Poojani K.H.S | Member 2 OAuth evidence |
+| OAuth Account Mapping | Thuverakan T | Member 3 OAuth evidence |
+| OAuth Frontend Flow | Sonali G.D.D | Member 4 OAuth evidence |
+
+# Security Development Workflow
+
+Each vulnerability follows a before-and-after workflow:
+
+```text
+Identify Vulnerability
+        ↓
+Reproduce Vulnerability
+        ↓
+Record Before State
+        ↓
+Implement Security Fix
+        ↓
+Create/Update Tests
+        ↓
+Run Automated Tests
+        ↓
+Repeat Original PoC
+        ↓
+Verify Secure Behaviour
+        ↓
+Commit Changes
+        ↓
+Document Evidence
+```
+
+# Security Best Practices
+
+- Enforce authentication on protected resources.
+- Perform object-level authorization checks.
+- Do not trust client-controlled object IDs.
+- Use allow-listing for sensitive request fields.
+- Keep security-sensitive configuration in environment variables.
+- Validate OAuth `state` and OIDC `nonce`.
+- Use PKCE for OAuth authorization-code flows.
+- Validate redirect URIs strictly.
+- Preserve application-level roles independently from external authentication.
+- Validate uploaded files before processing.
+- Validate user-controlled input.
+- Apply rate limiting to sensitive operations.
+- Avoid exposing internal server errors.
+- Regularly audit third-party dependencies.
+- Add automated tests for security-sensitive functionality.
+- Keep secrets and API credentials out of source control.
+
+# Security Assignment Evidence
+
+Evidence for the assessment includes:
+
+- Before-state source-code demonstrations
+- Postman vulnerability reproduction
+- After-fix API demonstrations
+- Automated test results
+- Git commit history
+- OAuth provider configuration
+- OAuth security validation tests
+- Manual OAuth security testing
+- Screenshots and screen recordings for individual member contributions
+
+Each team member is responsible for adding evidence corresponding to their assigned vulnerabilities and OAuth contribution.
+
+# Security Configuration
+
+Never commit actual credentials or secrets to GitHub.
+
+The following must remain in local environment variables or secure deployment configuration:
+
+```text
+MongoDB credentials
+JWT secrets
+Google OAuth client secrets
+Cloudinary credentials
+Resend API keys
+Gemini/Groq API keys
+SMS provider credentials
+```
+
+Example environment files should contain placeholders only.
+
+## Contributors
+
+| Member | Student ID | Vulnerabilities | OAuth Contribution |
+|---|---|---|---|
+| **Clerin B** | **IT23402584** | V1 – IDOR / Broken Access Control<br>V2 – Mass Assignment | Provider configuration, security controls, OAuth security testing |
+| **Poojani K.H.S** | **IT23214002** | V3 – Missing Authentication<br>V4 – Socket.IO Missing Authorization<br>V5 – Internal Error Information Leakage | Core backend OAuth flow |
+| **Thuverakan T** | **IT23281332** | V6 – User Enumeration + Weak OTP<br>V7 – Missing Rate Limiting | Local account mapping, creation/linking, role handling |
+| **Sonali G.D.D** | **IT23211896** | V8 – Insecure File Upload<br>V9 – Improper Input Validation<br>V10 – Vulnerable Dependencies | Frontend Google Sign-In, PKCE, callback and success/error flow |
+
+## Assignment Deliverables
+
+1. Security-enhanced source code repository
+2. Original vulnerable repository/reference
+3. Detailed README documentation
+4. Security assessment report
+5. Vulnerability reproduction and remediation evidence
+6. OAuth/OIDC implementation and security testing
+7. YouTube demonstration video
+8. Project ZIP/archive where required
 
 ## License
 
