@@ -16,6 +16,7 @@ import logo from "../assets/logo.png";
 import loginImg from "../assets/images/login.png";
 
 import "./Auth.css";
+import { generateCodeChallenge, generateCodeVerifier } from "../utils/pkce";
 
 export default function Login() {
   const nav = useNavigate();
@@ -28,6 +29,53 @@ export default function Login() {
 
   const [canReactivate, setCanReactivate] = useState(false);
   const [reactivating, setReactivating] = useState(false);
+
+
+  const handleGoogleLogin = async () => {
+    try {
+      setMsg("");
+      setLoading(true);
+
+      // Generate PKCE verifier and challenge
+      const codeVerifier = generateCodeVerifier();
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+      // Save verifier so OAuthCallback can use it
+      sessionStorage.setItem(
+        "google_code_verifier",
+        codeVerifier
+      );
+
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+      if (!clientId) {
+        throw new Error("Google Client ID is not configured.");
+      }
+
+      const redirectUri = `${window.location.origin}/oauth/callback`;
+
+      const googleAuthUrl =
+        "https://accounts.google.com/o/oauth2/v2/auth?" +
+        new URLSearchParams({
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          response_type: "code",
+          scope: "openid email profile",
+          code_challenge: codeChallenge,
+          code_challenge_method: "S256",
+          access_type: "offline",
+          prompt: "select_account",
+        }).toString();
+
+      window.location.href = googleAuthUrl;
+    } catch (err) {
+      console.error("Google login error:", err);
+      sessionStorage.removeItem("google_code_verifier");
+
+      setMsg(err.message || "Unable to start Google sign-in.");
+      setLoading(false);
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -248,6 +296,23 @@ export default function Login() {
             <span className="auth-divider-line" />
           </div>
 
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg px-4 py-3 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+          >
+            <img
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              alt="Google"
+              className="w-5 h-5"
+            />
+
+
+            <span className="btn-text">
+              Continue with Google
+            </span>
+          </button>
           {/* Footer */}
           <div className="auth-footer-links">
             <Link to="/register" className="auth-link">
