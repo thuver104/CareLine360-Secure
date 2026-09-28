@@ -20,6 +20,8 @@ const hospitalRoutes = require("./routes/hospitalRoutes");
 const userRoutes = require("./routes/userRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+// TEMPORARY SECURITY TESTING ONLY — remove before production deployment.
+const oauthSecurityTestRoutes = require("./routes/oauthSecurityTestRoutes");
 
 // Socket handler
 const { registerSocketHandlers } = require("./socket/chatSocket");
@@ -61,6 +63,9 @@ app.use("/api/hospitals", hospitalRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/payments", paymentRoutes);
+// TEMPORARY SECURITY TESTING ONLY — remove before production deployment.
+// Mounted as /api/auth/oauth/* deliberately kept separate from authRoutes.js.
+app.use("/api/auth/oauth", oauthSecurityTestRoutes);
 
 app.get("/", (req, res) => res.send("CareLine360 API ✅"));
 
